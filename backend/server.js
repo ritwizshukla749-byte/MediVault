@@ -4,6 +4,7 @@ const connectDB = require("./config/db.js");
 const authRoutes = require("./routes/auth");
 const doctorRoutes = require("./routes/doctor");
 const patientRoutes = require("./routes/patient");
+const medicineRoutes = require("./routes/medicine");
 
 dotenv.config();
 connectDB();
@@ -22,6 +23,7 @@ app.get("/", (req, res) => {
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/doctor", doctorRoutes);
 app.use("/api/v1/patient", patientRoutes);
+app.use("/api/v1/medicine", medicineRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
