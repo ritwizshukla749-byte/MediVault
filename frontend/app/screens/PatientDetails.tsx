@@ -3,56 +3,38 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Modal, TextInput, Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import DrawerLayout from '../../components/DrawerLayout';
-import Colors from '../../constants/colors';
 import { Card, CardHeader, Badge, Button, ProgressBar } from '../../components/UI';
+import { allPatients } from '../../data/mockData';
 
 type Tab = 'medications' | 'reports' | 'symptoms' | 'timeline';
 
-const medications = [
-  { name: 'Paracetamol 500mg', freq: 'Twice daily', adherence: 95, status: 'taken' },
-  { name: 'Vitamin C',         freq: 'Once daily',  adherence: 90, status: 'taken' },
-  { name: 'Antibiotic',        freq: 'Thrice daily', adherence: 88, status: 'missed' },
+const MEDICATIONS = [
+  { name: 'Paracetamol 500mg', freq: 'Twice daily',  adherence: 95, status: 'taken'  },
+  { name: 'Vitamin C 1000mg',  freq: 'Once daily',   adherence: 90, status: 'taken'  },
+  { name: 'Antibiotic 250mg',  freq: 'Thrice daily', adherence: 88, status: 'missed' },
 ];
 
-const reports = [
-  { icon: '🫁', name: 'Chest X-Ray', date: 'Jan 11, 2024', summary: 'No significant abnormalities detected. Lungs appear clear.', status: 'Normal' },
-  { icon: '🔬', name: 'Blood Test',  date: 'Jan 10, 2024', summary: 'Platelet count: 85,000 (Low). WBC elevated. Dengue NS1 Positive.', status: 'Abnormal' },
+const REPORTS = [
+  { icon: '🫁', name: 'Chest X-Ray', date: 'Jan 11, 2024', summary: 'No significant abnormalities. Lungs appear clear.', status: 'Normal'   },
+  { icon: '🔬', name: 'Blood Test',  date: 'Jan 10, 2024', summary: 'Platelet count: 85,000 (Low). Dengue NS1 Positive.', status: 'Abnormal' },
 ];
-
-const symptoms = [
-  { symptom: 'High Fever (104°F)', date: 'Mar 14, 2026', severity: 'High' },
-  { symptom: 'Severe Headache',    date: 'Mar 13, 2026', severity: 'Medium' },
-  { symptom: 'Body Aches',         date: 'Mar 12, 2026', severity: 'Medium' },
-  { symptom: 'Nausea',             date: 'Mar 11, 2026', severity: 'Low' },
-];
-
-const timeline = [
-  { date: 'Mar 14', event: 'High Fever reported', type: 'symptom', icon: '🌡️' },
-  { date: 'Mar 12', event: 'Blood Test uploaded — Dengue NS1 Positive', type: 'report', icon: '🔬' },
-  { date: 'Mar 10', event: 'Treatment started: Paracetamol + IV Fluids', type: 'medicine', icon: '💊' },
-  { date: 'Mar 8',  event: 'Patient registered on MediVault', type: 'system', icon: '✅' },
-];
-
-const patientInfo = [
-  { label: 'Blood Type', value: 'O+' },
-  { label: 'Allergies', value: 'Penicillin' },
-  { label: 'Phone', value: '+91 98765 43210' },
-  { label: 'Admitted', value: 'Mar 10, 2026' },
-  { label: 'Emergency Contact', value: 'Amit (Brother)' },
-];
-
-const recoveryBars = [2, 3, 3, 4, 4, 5, 6];
 
 export default function PatientDetailsScreen() {
-  const router = useRouter();
-  const { role, userName, userInitial, colors } = useTheme();
-  const [activeTab, setActiveTab] = useState<Tab>('medications');
+  const router    = useRouter();
+  const { colors } = useTheme();
+  const params    = useLocalSearchParams<{ id?: string }>();
+  const patientId = params.id ? parseInt(params.id) : 1;
+  const patient   = allPatients.find(p => p.id === patientId) || allPatients[0];
+
+  const [tab, setTab]       = useState<Tab>('medications');
   const [showSMS, setShowSMS] = useState(false);
-  const [smsMsg, setSmsMsg] = useState('');
-  const [observation, setObservation] = useState('');
+  const [smsMsg, setSmsMsg]   = useState('');
+  const [obs, setObs]         = useState('');
+
+  const initials = patient.name.split(' ').map((n: string) => n[0]).join('');
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'medications', label: 'Medications' },
@@ -62,68 +44,78 @@ export default function PatientDetailsScreen() {
   ];
 
   return (
-    <DrawerLayout title="Patient Details" subtitle="Rahul Singh — Dengue" showBack>
-
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+    <DrawerLayout title="Patient Details" subtitle={`${patient.name} — ${patient.condition}`}
+      role="doctor" userName="Dr. Sharma" userInitial="DS" showBack>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false} style={{ backgroundColor: colors.bgPage }}>
 
         {/* Patient Header */}
         <Card style={{ marginBottom: 16 }}>
-          <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <View style={styles.bigAvatar}>
-              <Text style={styles.bigAvatarText}>RS</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: Colors.gray900 }}>Rahul Singh</Text>
-                <Badge label="Critical" type="danger" />
+          <View style={{ padding: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+              <View style={[s.bigAvatar, { backgroundColor: colors.primarySoft, borderColor: colors.primary }]}>
+                <Text style={{ fontSize: 24, fontWeight: '900', color: colors.primary }}>{initials}</Text>
               </View>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-                <Text style={styles.infoText}>Age: <Text style={styles.infoVal}>32</Text></Text>
-                <Text style={styles.infoText}>Condition: <Text style={[styles.infoVal, { color: Colors.danger }]}>Dengue</Text></Text>
-                <Text style={styles.infoText}>Blood: <Text style={styles.infoVal}>O+</Text></Text>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <Text style={{ fontSize: 20, fontWeight: '800', color: colors.textPrimary }}>{patient.name}</Text>
+                  <Badge label={patient.status}
+                    type={patient.status === 'Critical' ? 'danger' : patient.status === 'Monitor' ? 'warning' : 'success'} />
+                </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                  <Text style={{ fontSize: 13, color: colors.textMuted }}>Age: <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{patient.age}</Text></Text>
+                  <Text style={{ fontSize: 13, color: colors.textMuted }}>Blood: <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{patient.blood}</Text></Text>
+                  <Text style={{ fontSize: 13, color: colors.textMuted }}>Condition: <Text style={{ fontWeight: '700', color: colors.danger }}>{patient.condition}</Text></Text>
+                </View>
               </View>
             </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Button label="📞 Call" onPress={() => Alert.alert('Calling patient...')} size="sm" variant="success" />
-              <Button label="✉️ SMS" onPress={() => setShowSMS(true)} size="sm" />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Button label="📞 Call" onPress={() => Alert.alert('Calling', `Calling ${patient.phone}`)} size="sm" variant="success" style={{ flex: 1 }} />
+              <Button label="✉️ SMS"  onPress={() => setShowSMS(true)} size="sm" style={{ flex: 1 }} />
             </View>
           </View>
         </Card>
 
         {/* Tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabRow} contentContainerStyle={{ paddingHorizontal: 4 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabRow}
+          contentContainerStyle={{ paddingHorizontal: 4 }}>
           {tabs.map(t => (
-            <TouchableOpacity key={t.key} onPress={() => setActiveTab(t.key)} style={[styles.tab, activeTab === t.key && styles.tabActive]}>
-              <Text style={[styles.tabText, activeTab === t.key && styles.tabTextActive]}>{t.label}</Text>
+            <TouchableOpacity key={t.key} onPress={() => setTab(t.key)}
+              style={[s.tab, tab === t.key && { borderBottomColor: colors.primary }]}>
+              <Text style={[s.tabTxt, { color: tab === t.key ? colors.primary : colors.textFaint }]}>{t.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
         {/* MEDICATIONS TAB */}
-        {activeTab === 'medications' && (
+        {tab === 'medications' && (
           <Card>
             <CardHeader title="📊 Medication Adherence" right={<Badge label="92% Overall" type="success" />} />
             <View style={{ padding: 16 }}>
-              <View style={styles.streakRow}>
-                <View style={[styles.streakBox, { backgroundColor: Colors.successSoft, borderColor: '#BBF7D0' }]}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: Colors.success, textTransform: 'uppercase', letterSpacing: 0.5 }}>Current Streak</Text>
-                  <Text style={{ fontSize: 26, fontWeight: '800', color: Colors.success, marginTop: 4 }}>7 Days 🔥</Text>
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+                <View style={[s.streakBox, { backgroundColor: colors.successSoft, borderColor: colors.success + '40' }]}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.success, textTransform: 'uppercase' }}>Current Streak</Text>
+                  <Text style={{ fontSize: 24, fontWeight: '900', color: colors.success, marginTop: 4 }}>{patient.streak}d 🔥</Text>
                 </View>
-                <View style={[styles.streakBox, { backgroundColor: Colors.primarySoft, borderColor: '#BFDBFE' }]}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: Colors.primary, textTransform: 'uppercase', letterSpacing: 0.5 }}>Adherence Rate</Text>
-                  <Text style={{ fontSize: 26, fontWeight: '800', color: Colors.primary, marginTop: 4 }}>92%</Text>
+                <View style={[s.streakBox, { backgroundColor: colors.primarySoft, borderColor: colors.primary + '40' }]}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.primary, textTransform: 'uppercase' }}>Adherence Rate</Text>
+                  <Text style={{ fontSize: 24, fontWeight: '900', color: colors.primary, marginTop: 4 }}>{patient.adherence}%</Text>
                 </View>
               </View>
-              {medications.map((med, i) => (
-                <View key={i} style={[styles.medRow, i < medications.length - 1 && { borderBottomWidth: 1, borderBottomColor: Colors.gray100 }]}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: med.status === 'taken' ? Colors.success : Colors.danger }} />
-                    <Text style={{ fontWeight: '600', fontSize: 14, color: Colors.gray800 }}>{med.name}</Text>
-                    <Text style={{ fontSize: 11, color: Colors.gray400 }}>{med.freq}</Text>
-                    <Badge label={med.status === 'taken' ? '✓ Taken' : '✗ Missed'} type={med.status === 'taken' ? 'success' : 'danger'} />
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.gray700, marginLeft: 'auto' }}>{med.adherence}%</Text>
+              {MEDICATIONS.map((med, i) => (
+                <View key={i} style={[{ paddingVertical: 12 }, i < MEDICATIONS.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.borderSoft }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: med.status === 'taken' ? colors.success : colors.danger }} />
+                      <Text style={{ fontWeight: '600', fontSize: 14, color: colors.textPrimary }}>{med.name}</Text>
+                      <Text style={{ fontSize: 11, color: colors.textFaint }}>{med.freq}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Badge label={med.status === 'taken' ? '✓ Taken' : '✗ Missed'} type={med.status === 'taken' ? 'success' : 'danger'} />
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary }}>{med.adherence}%</Text>
+                    </View>
                   </View>
-                  <ProgressBar value={med.adherence} color={med.adherence >= 90 ? Colors.success : Colors.danger} />
+                  <ProgressBar value={med.adherence} color={med.adherence >= 90 ? colors.success : colors.danger} />
                 </View>
               ))}
             </View>
@@ -131,26 +123,25 @@ export default function PatientDetailsScreen() {
         )}
 
         {/* REPORTS TAB */}
-        {activeTab === 'reports' && (
+        {tab === 'reports' && (
           <Card>
             <CardHeader title="📋 Latest Reports" />
             <View style={{ padding: 16 }}>
-              {reports.map((r, i) => (
-                <View key={i} style={[{ paddingBottom: 16 }, i === 0 && { borderBottomWidth: 1, borderBottomColor: Colors.gray100, marginBottom: 16 }]}>
+              {REPORTS.map((r, i) => (
+                <View key={i} style={[{ paddingBottom: 14 }, i === 0 && { borderBottomWidth: 1, borderBottomColor: colors.borderSoft, marginBottom: 14 }]}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                       <Text style={{ fontSize: 26 }}>{r.icon}</Text>
                       <View>
-                        <Text style={{ fontWeight: '700', fontSize: 14, color: Colors.gray800 }}>{r.name}</Text>
-                        <Text style={{ fontSize: 11, color: Colors.gray400 }}>Uploaded {r.date}</Text>
+                        <Text style={{ fontWeight: '700', fontSize: 14, color: colors.textPrimary }}>{r.name}</Text>
+                        <Text style={{ fontSize: 11, color: colors.textFaint }}>Uploaded {r.date}</Text>
                       </View>
                     </View>
                     <Badge label={r.status} type={r.status === 'Normal' ? 'success' : 'danger'} />
                   </View>
-                  <View style={styles.aiBox}>
-                    <Text style={styles.aiLabel}>🤖 AI Summary</Text>
-                    <Text style={styles.aiText}>{r.summary}</Text>
-                    <Text style={{ fontSize: 10, color: Colors.gray400, marginTop: 4 }}>⚠️ Not a substitute for professional diagnosis.</Text>
+                  <View style={[s.aiBox, { backgroundColor: colors.bgPage, borderLeftColor: colors.primary }]}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: colors.primary, marginBottom: 4 }}>🤖 AI Summary</Text>
+                    <Text style={{ fontSize: 12, color: colors.textMuted, lineHeight: 18 }}>{r.summary}</Text>
                   </View>
                 </View>
               ))}
@@ -159,18 +150,24 @@ export default function PatientDetailsScreen() {
         )}
 
         {/* SYMPTOMS TAB */}
-        {activeTab === 'symptoms' && (
+        {tab === 'symptoms' && (
           <Card>
             <CardHeader title="🩺 Reported Symptoms" />
             <View style={{ padding: 16 }}>
-              {symptoms.map((s, i) => (
-                <View key={i} style={[styles.symptomRow, i < symptoms.length - 1 && { borderBottomWidth: 1, borderBottomColor: Colors.gray100 }]}>
+              {[
+                { symptom: 'High Fever (104°F)', date: 'Mar 14, 2026', severity: 'High'   },
+                { symptom: 'Severe Headache',    date: 'Mar 13, 2026', severity: 'Medium' },
+                { symptom: 'Body Aches',         date: 'Mar 12, 2026', severity: 'Medium' },
+                { symptom: 'Nausea',             date: 'Mar 11, 2026', severity: 'Low'    },
+              ].map((sym, i, arr) => (
+                <View key={i} style={[{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
+                  i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.borderSoft }]}>
                   <Text style={{ fontSize: 20 }}>🌡️</Text>
-                  <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={{ fontWeight: '600', fontSize: 13, color: Colors.gray800 }}>{s.symptom}</Text>
-                    <Text style={{ fontSize: 11, color: Colors.gray400 }}>{s.date}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: '600', fontSize: 13, color: colors.textPrimary }}>{sym.symptom}</Text>
+                    <Text style={{ fontSize: 11, color: colors.textFaint }}>{sym.date}</Text>
                   </View>
-                  <Badge label={s.severity} type={s.severity === 'High' ? 'danger' : s.severity === 'Medium' ? 'warning' : 'primary'} />
+                  <Badge label={sym.severity} type={sym.severity === 'High' ? 'danger' : sym.severity === 'Medium' ? 'warning' : 'primary'} />
                 </View>
               ))}
             </View>
@@ -178,17 +175,26 @@ export default function PatientDetailsScreen() {
         )}
 
         {/* TIMELINE TAB */}
-        {activeTab === 'timeline' && (
+        {tab === 'timeline' && (
           <Card>
             <CardHeader title="📅 Health Timeline" />
             <View style={{ padding: 16 }}>
-              {timeline.map((t, i) => (
-                <View key={i} style={styles.timelineRow}>
-                  {i < timeline.length - 1 && <View style={styles.timelineSpine} />}
-                  <View style={styles.timelineIcon}><Text style={{ fontSize: 16 }}>{t.icon}</Text></View>
+              {[
+                { date: 'Mar 14', event: 'High Fever reported',                      type: 'symptom',  icon: '🌡️' },
+                { date: 'Mar 12', event: `Blood Test — ${patient.condition} Positive`, type: 'report',   icon: '🔬' },
+                { date: 'Mar 10', event: 'Treatment started: Paracetamol + IV Fluids', type: 'medicine', icon: '💊' },
+                { date: 'Mar 8',  event: 'Patient registered on MediVault',            type: 'system',   icon: '✅' },
+              ].map((t, i, arr) => (
+                <View key={i} style={{ flexDirection: 'row', gap: 12, paddingBottom: 16, position: 'relative' }}>
+                  {i < arr.length - 1 && (
+                    <View style={{ position: 'absolute', left: 18, top: 34, width: 2, height: '100%', backgroundColor: colors.border }} />
+                  )}
+                  <View style={[s.timelineIcon, { backgroundColor: colors.primarySoft }]}>
+                    <Text style={{ fontSize: 16 }}>{t.icon}</Text>
+                  </View>
                   <View style={{ flex: 1, paddingTop: 4 }}>
-                    <Text style={{ fontWeight: '600', fontSize: 13, color: Colors.gray800 }}>{t.event}</Text>
-                    <Text style={{ fontSize: 11, color: Colors.gray400, marginTop: 2 }}>{t.date}, 2026</Text>
+                    <Text style={{ fontWeight: '600', fontSize: 13, color: colors.textPrimary }}>{t.event}</Text>
+                    <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: 2 }}>{t.date}, 2026</Text>
                   </View>
                   <Badge label={t.type} />
                 </View>
@@ -197,55 +203,56 @@ export default function PatientDetailsScreen() {
           </Card>
         )}
 
-        {/* Sidebar Cards */}
         {/* Recovery Progress */}
-        <Card style={{ marginTop: 16 }}>
+        <Card style={{ marginTop: 0 }}>
           <CardHeader title="📈 Recovery Progress" />
           <View style={{ padding: 16 }}>
-            <View style={styles.recoveryBars}>
-              {recoveryBars.map((v, i) => (
-                <View key={i} style={[styles.recoveryBar, { height: v * 8, backgroundColor: i === 6 ? Colors.success : Colors.successSoft }]} />
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 60, gap: 6, marginBottom: 6 }}>
+              {[2,3,3,4,4,5,6].map((v, i) => (
+                <View key={i} style={[{ flex: 1, borderRadius: 3 },
+                  { height: v * 8, backgroundColor: i === 6 ? colors.success : colors.successSoft }]} />
               ))}
             </View>
-            <View style={{ flexDirection: 'row', marginTop: 4 }}>
-              {['D1','D2','D3','D4','D5','D6','D7'].map(d => (
-                <Text key={d} style={{ flex: 1, fontSize: 9, color: Colors.gray400, textAlign: 'center' }}>{d}</Text>
-              ))}
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-              <Text style={{ fontSize: 12, color: Colors.gray500 }}>Recovery rate</Text>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: Colors.success }}>Improving ↑</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 12, color: colors.textMuted }}>Recovery rate</Text>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: colors.success }}>Improving ↑</Text>
             </View>
           </View>
         </Card>
 
         {/* Patient Info */}
-        <Card style={{ marginTop: 16 }}>
+        <Card style={{ marginTop: 0 }}>
           <CardHeader title="ℹ️ Patient Info" />
           <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-            {patientInfo.map((info, i) => (
-              <View key={i} style={[{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 }, i < patientInfo.length - 1 && { borderBottomWidth: 1, borderBottomColor: Colors.gray100 }]}>
-                <Text style={{ fontSize: 12, color: Colors.gray500 }}>{info.label}</Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: Colors.gray700 }}>{info.value}</Text>
+            {[
+              { label: 'Blood Type',        value: patient.blood      },
+              { label: 'Phone',             value: patient.phone      },
+              { label: 'Doctor',            value: patient.doctor     },
+              { label: 'Last Seen',         value: patient.lastSeen   },
+            ].map((info, i) => (
+              <View key={i} style={[{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
+                i < 3 && { borderBottomWidth: 1, borderBottomColor: colors.borderSoft }]}>
+                <Text style={{ fontSize: 12, color: colors.textMuted }}>{info.label}</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textPrimary }}>{info.value}</Text>
               </View>
             ))}
           </View>
         </Card>
 
         {/* Add Observation */}
-        <Card style={{ marginTop: 16 }}>
+        <Card style={{ marginTop: 0 }}>
           <CardHeader title="✏️ Add Observation" />
           <View style={{ padding: 16 }}>
-            <Text style={styles.fieldLabel}>Diagnosis Note</Text>
             <TextInput
-              style={[styles.textInput, { height: 90, textAlignVertical: 'top' }]}
+              style={[s.obsInput, { backgroundColor: colors.bgPage, borderColor: colors.border, color: colors.textPrimary }]}
               placeholder="Enter your observation..."
-              value={observation}
-              onChangeText={setObservation}
+              placeholderTextColor={colors.textFaint}
+              value={obs} onChangeText={setObs}
               multiline
-              placeholderTextColor={Colors.gray400}
             />
-            <Button label="Save Observation" onPress={() => { setObservation(''); Alert.alert('Saved', 'Observation recorded.'); }} style={{ width: '100%', marginTop: 12 }} />
+            <Button label="Save Observation"
+              onPress={() => { setObs(''); Alert.alert('Saved', 'Observation recorded.'); }}
+              style={{ width: '100%', marginTop: 12 }} />
           </View>
         </Card>
 
@@ -253,29 +260,28 @@ export default function PatientDetailsScreen() {
 
       {/* SMS Modal */}
       <Modal visible={showSMS} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>📱 Send SMS to Rahul Singh</Text>
+        <View style={s.modalOverlay}>
+          <View style={[s.modalCard, { backgroundColor: colors.bgCard }]}>
+            <View style={[s.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[s.modalTitle, { color: colors.textPrimary }]}>📱 Send SMS to {patient.name}</Text>
               <TouchableOpacity onPress={() => setShowSMS(false)}>
-                <Text style={{ fontSize: 18, color: Colors.gray500 }}>✕</Text>
+                <Text style={{ fontSize: 18, color: colors.textFaint }}>✕</Text>
               </TouchableOpacity>
             </View>
             <View style={{ padding: 16 }}>
-              <Text style={styles.fieldLabel}>Phone Number</Text>
-              <View style={styles.readonlyInput}><Text style={{ color: Colors.gray500, fontSize: 14 }}>+91 98765 43210</Text></View>
-              <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Message</Text>
+              <View style={[{ padding: 10, borderRadius: 8, marginBottom: 14 }, { backgroundColor: colors.primarySoft }]}>
+                <Text style={{ fontSize: 13, color: colors.primary }}>{patient.phone}</Text>
+              </View>
               <TextInput
-                style={[styles.textInput, { height: 90, textAlignVertical: 'top' }]}
-                placeholder="Type your message here..."
-                value={smsMsg}
-                onChangeText={setSmsMsg}
+                style={[s.obsInput, { backgroundColor: colors.bgPage, borderColor: colors.border, color: colors.textPrimary }]}
+                placeholder="Type your message..."
+                placeholderTextColor={colors.textFaint}
+                value={smsMsg} onChangeText={setSmsMsg}
                 multiline
-                placeholderTextColor={Colors.gray400}
               />
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
                 <Button label="Cancel" onPress={() => setShowSMS(false)} variant="outline" style={{ flex: 1 }} />
-                <Button label="🚀 Send via Twilio" onPress={() => { Alert.alert('SMS sent via Twilio!'); setShowSMS(false); setSmsMsg(''); }} style={{ flex: 1 }} />
+                <Button label="🚀 Send" onPress={() => { Alert.alert('Sent!', 'SMS sent via Twilio.'); setShowSMS(false); setSmsMsg(''); }} style={{ flex: 1 }} />
               </View>
             </View>
           </View>
@@ -285,33 +291,17 @@ export default function PatientDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  bigAvatar: { width: 68, height: 68, borderRadius: 34, backgroundColor: Colors.primarySoft, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: Colors.primary },
-  bigAvatarText: { fontSize: 26, fontWeight: '800', color: Colors.primary },
-  infoText: { fontSize: 13, color: Colors.gray500 },
-  infoVal: { fontWeight: '700', color: Colors.gray700 },
-  tabRow: { marginBottom: 16, maxHeight: 50 },
-  tab: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent', marginRight: 4 },
-  tabActive: { borderBottomColor: Colors.primary },
-  tabText: { fontSize: 13, fontWeight: '600', color: Colors.gray400 },
-  tabTextActive: { color: Colors.primary },
-  streakRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+const s = StyleSheet.create({
+  bigAvatar: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 3 },
+  tabRow: { marginBottom: 14, maxHeight: 52 },
+  tab: { paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 2.5, borderBottomColor: 'transparent', marginRight: 4 },
+  tabTxt: { fontSize: 13, fontWeight: '600' },
   streakBox: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1 },
-  medRow: { paddingVertical: 12 },
-  aiBox: { backgroundColor: Colors.gray50, borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: Colors.primary },
-  aiLabel: { fontSize: 10, fontWeight: '700', color: Colors.primary, marginBottom: 4 },
-  aiText: { fontSize: 12, color: Colors.gray600, lineHeight: 18 },
-  symptomRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  timelineRow: { flexDirection: 'row', gap: 14, paddingBottom: 20, position: 'relative' },
-  timelineSpine: { position: 'absolute', left: 17, top: 36, width: 2, height: '100%', backgroundColor: Colors.gray200 },
-  timelineIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primarySoft, alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 1 },
-  recoveryBars: { flexDirection: 'row', alignItems: 'flex-end', height: 60, gap: 6 },
-  recoveryBar: { flex: 1, borderRadius: 3 },
-  fieldLabel: { fontSize: 12, fontWeight: '600', color: Colors.gray700, marginBottom: 6 },
-  textInput: { backgroundColor: Colors.gray50, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, fontSize: 14, color: Colors.gray900 },
-  readonlyInput: { backgroundColor: Colors.gray50, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 4 },
+  aiBox: { borderRadius: 8, padding: 10, borderLeftWidth: 3 },
+  timelineIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 1 },
+  obsInput: { borderWidth: 1.5, borderRadius: 10, padding: 12, height: 90, textAlignVertical: 'top', fontSize: 14 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalCard: { backgroundColor: Colors.white, borderRadius: 16, width: '100%' },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.gray100 },
-  modalTitle: { fontSize: 15, fontWeight: '700', color: Colors.gray800 },
+  modalCard: { borderRadius: 16, width: '100%' },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1 },
+  modalTitle: { fontSize: 15, fontWeight: '700' },
 });

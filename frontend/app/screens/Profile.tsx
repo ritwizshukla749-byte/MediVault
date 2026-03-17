@@ -1,275 +1,382 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  TextInput, Switch, Alert,
+  TextInput, Switch, Alert, Dimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useTheme } from '../../context/ThemeContext';
 import DrawerLayout from '../../components/DrawerLayout';
-import Colors from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { Card, CardHeader, Badge, Button } from '../../components/UI';
 
+const { width: SW } = Dimensions.get('window');
 type Tab = 'profile' | 'health' | 'notifications' | 'security';
 
-const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+/* ─── Shared input ─────────────────────────────────────────────── */
+function Field({ label, value, secure = false, colors }: {
+  label: string; value: string; secure?: boolean; colors: any;
+}) {
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <Text style={[ft.label, { color: colors.textMuted }]}>{label}</Text>
+      <TextInput
+        style={[ft.input, { backgroundColor: colors.bgPage, borderColor: colors.border, color: colors.textPrimary }]}
+        defaultValue={value}
+        secureTextEntry={secure}
+        placeholderTextColor={colors.textFaint}
+      />
+    </View>
+  );
+}
 
-export default function ProfileScreen() {
-  const router = useRouter();
-  const { role, userName, userInitial, colors } = useTheme();
-  const [saved, setSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('profile');
+/* ─── Shared tab bar ───────────────────────────────────────────── */
+function TabBar({ tabs, active, onSelect, accent }: {
+  tabs: { key: string; label: string }[];
+  active: string; onSelect: (k: string) => void; accent: string;
+}) {
+  const { colors } = useTheme();
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}
+      style={[ft.tabRow, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}
+      contentContainerStyle={{ paddingHorizontal: 12 }}>
+      {tabs.map(t => (
+        <TouchableOpacity key={t.key} onPress={() => onSelect(t.key)}
+          style={[ft.tab, active === t.key && { borderBottomColor: accent }]}>
+          <Text style={[ft.tabTxt, { color: active === t.key ? accent : colors.textFaint }]}>{t.label}</Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+}
 
-  const save = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-    Alert.alert('Saved', 'Your changes have been saved.');
-  };
+/* ═══════════════════ DOCTOR PROFILE ═══════════════════ */
+function DoctorProfile() {
+  const { colors, isDark } = useTheme();
+  const [tab, setTab] = useState('profile');
+  const accent = colors.primary;
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'profile',       label: '👤 Profile'       },
-    { key: 'health',        label: '🏥 Health'         },
-    { key: 'notifications', label: '🔔 Notifications'  },
-    { key: 'security',      label: '🔒 Security'       },
+  const tabs = [
+    { key: 'profile',  label: '👨‍⚕️ Profile'  },
+    { key: 'alerts',   label: '🔔 Alerts'    },
+    { key: 'security', label: '🔒 Security'  },
   ];
-
-  const notifPrefs = [
-    { label: 'Medication Reminders',     sub: 'Get notified 15 min before each dose',              on: true  },
-    { label: 'Missed Dose Alerts',       sub: 'Alert when a dose is missed',                       on: true  },
-    { label: 'Doctor Messages',          sub: 'Notifications for new messages from your doctor',   on: true  },
-    { label: 'Report AI Summary Ready',  sub: 'When AI finishes analysing your report',            on: true  },
-    { label: 'Weekly Adherence Summary', sub: 'Weekly report of your medication adherence',        on: false },
-    { label: 'Promotional Updates',      sub: 'Tips, health articles, and product updates',        on: false },
-  ];
-
-  const [toggles, setToggles] = useState(notifPrefs.map(p => p.on));
-  const [bloodType, setBloodType] = useState('O+');
 
   return (
-    <DrawerLayout title="Profile & Settings" subtitle="Manage your account" showBack>
-
-      {/* Profile Header */}
-      <View style={styles.profileBanner}>
-        <View style={styles.avatarWrap}>
-          <Text style={styles.avatarText}>RS</Text>
-          <View style={styles.editBadge}><Text style={{ fontSize: 10 }}>✏️</Text></View>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.profileName}>Rahul Singh</Text>
-          <Text style={styles.profileEmail}>rahul.singh@email.com · Patient</Text>
-          <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-            <View style={styles.profileChip}><Text style={styles.profileChipText}>🩸 O+</Text></View>
-            <View style={styles.profileChip}><Text style={styles.profileChipText}>⚠️ Penicillin Allergy</Text></View>
-            <View style={styles.profileChip}><Text style={styles.profileChipText}>ID: MV-2024-RS-001</Text></View>
+    <>
+      {/* Header */}
+      <View style={[dh.header, { backgroundColor: isDark ? '#0d1b3e' : '#0C1F6B' }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+          <View style={dh.avatar}>
+            <Text style={{ fontSize: 28 }}>👨‍⚕️</Text>
           </View>
+          <View style={{ flex: 1 }}>
+            <Text style={dh.name}>Dr. Arun Sharma</Text>
+            <Text style={dh.spec}>General Physician</Text>
+            <Text style={dh.hosp}>City General Hospital</Text>
+          </View>
+        </View>
+        {/* Chips */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+          {['🏥 HOSP-2024-001','👥 28 Patients','⭐ 4.9 Rating'].map(c => (
+            <View key={c} style={dh.chip}><Text style={dh.chipTxt}>{c}</Text></View>
+          ))}
+        </View>
+        {/* Stats */}
+        <View style={[dh.statsRow]}>
+          {[['28','Patients'],['92%','Adherence'],['5','Pending'],['2','Critical']].map(([v, l]) => (
+            <View key={l} style={dh.statItem}>
+              <Text style={dh.statVal} numberOfLines={1} adjustsFontSizeToFit>{v}</Text>
+              <Text style={dh.statLbl} numberOfLines={1}>{l}</Text>
+            </View>
+          ))}
         </View>
       </View>
 
-      {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabRow} contentContainerStyle={{ paddingHorizontal: 16 }}>
-        {tabs.map(t => (
-          <TouchableOpacity key={t.key} onPress={() => setActiveTab(t.key)} style={[styles.tab, activeTab === t.key && styles.tabActive]}>
-            <Text style={[styles.tabText, activeTab === t.key && styles.tabTextActive]}>{t.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <TabBar tabs={tabs} active={tab} onSelect={setTab} accent={accent} />
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-
-        {/* PROFILE TAB */}
-        {activeTab === 'profile' && (
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+        {tab === 'profile' && (
           <Card>
-            <CardHeader title="Personal Information" />
+            <CardHeader title="Professional Information" />
             <View style={{ padding: 16 }}>
-              <View style={styles.row}>
-                <View style={[styles.field, { flex: 1, marginRight: 8 }]}>
-                  <Text style={styles.label}>First Name</Text>
-                  <TextInput style={styles.input} defaultValue="Rahul" placeholderTextColor={Colors.gray400} />
-                </View>
-                <View style={[styles.field, { flex: 1 }]}>
-                  <Text style={styles.label}>Last Name</Text>
-                  <TextInput style={styles.input} defaultValue="Singh" placeholderTextColor={Colors.gray400} />
-                </View>
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Email Address</Text>
-                <TextInput style={styles.input} defaultValue="rahul.singh@email.com" keyboardType="email-address" autoCapitalize="none" placeholderTextColor={Colors.gray400} />
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Phone Number</Text>
-                <TextInput style={styles.input} defaultValue="+91 98765 43210" keyboardType="phone-pad" placeholderTextColor={Colors.gray400} />
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Gender</Text>
-                <View style={styles.genderRow}>
-                  {['Male', 'Female', 'Other'].map(g => (
-                    <TouchableOpacity key={g} style={[styles.genderBtn, g === 'Male' && styles.genderBtnActive]}>
-                      <Text style={[styles.genderText, g === 'Male' && { color: Colors.primary }]}>{g}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Address</Text>
-                <TextInput style={styles.input} defaultValue="A-42, Sector 18, Noida, UP 201301" placeholderTextColor={Colors.gray400} />
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                <Text style={{ fontSize: 11, color: Colors.gray400 }}>Last updated: Mar 10, 2026</Text>
-                <Button label={saved ? '✅ Saved!' : 'Save Changes'} onPress={save} size="sm" />
-              </View>
+              {[
+                ['Full Name',      'Dr. Arun Sharma'],
+                ['Specialisation', 'General Physician'],
+                ['Hospital',       'City General Hospital'],
+                ['Hospital ID',    'HOSP-2024-001'],
+                ['Email',          'dr.sharma@hospital.com'],
+                ['Phone',          '+91 98765 43210'],
+              ].map(([l, v]) => <Field key={l} label={l} value={v} colors={colors} />)}
+              <Button label="Save Changes" onPress={() => Alert.alert('Saved ✅')} />
             </View>
           </Card>
         )}
 
-        {/* HEALTH TAB */}
-        {activeTab === 'health' && (
+        {tab === 'alerts' && (
           <Card>
-            <CardHeader title="🩺 Medical Details" />
+            <CardHeader title="🔔 Alert Preferences" />
             <View style={{ padding: 16 }}>
-              <View style={styles.field}>
-                <Text style={styles.label}>Blood Type</Text>
-                <View style={styles.bloodRow}>
-                  {bloodTypes.map(b => (
-                    <TouchableOpacity key={b} onPress={() => setBloodType(b)} style={[styles.bloodBtn, bloodType === b && styles.bloodBtnActive]}>
-                      <Text style={[styles.bloodText, bloodType === b && { color: Colors.primary }]}>{b}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-              <View style={styles.row}>
-                <View style={[styles.field, { flex: 1, marginRight: 8 }]}>
-                  <Text style={styles.label}>Height (cm)</Text>
-                  <TextInput style={styles.input} defaultValue="175" keyboardType="numeric" placeholderTextColor={Colors.gray400} />
-                </View>
-                <View style={[styles.field, { flex: 1 }]}>
-                  <Text style={styles.label}>Weight (kg)</Text>
-                  <TextInput style={styles.input} defaultValue="72" keyboardType="numeric" placeholderTextColor={Colors.gray400} />
-                </View>
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Known Allergies</Text>
-                <TextInput style={styles.input} defaultValue="Penicillin, Sulfa drugs" placeholderTextColor={Colors.gray400} />
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Chronic Conditions</Text>
-                <TextInput style={styles.input} defaultValue="None" placeholderTextColor={Colors.gray400} />
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Emergency Contact Name</Text>
-                <TextInput style={styles.input} defaultValue="Amit Singh (Brother)" placeholderTextColor={Colors.gray400} />
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Emergency Contact Phone</Text>
-                <TextInput style={styles.input} defaultValue="+91 87654 32109" keyboardType="phone-pad" placeholderTextColor={Colors.gray400} />
-              </View>
-              <Button label={saved ? '✅ Saved!' : 'Save Health Info'} onPress={save} style={{ marginTop: 8, width: '100%' }} />
-            </View>
-          </Card>
-        )}
-
-        {/* NOTIFICATIONS TAB */}
-        {activeTab === 'notifications' && (
-          <Card>
-            <CardHeader title="🔔 Notification Preferences" />
-            <View style={{ padding: 16 }}>
-              {notifPrefs.map((pref, i) => (
-                <View key={i} style={[styles.prefRow, i < notifPrefs.length - 1 && { borderBottomWidth: 1, borderBottomColor: Colors.gray100 }]}>
+              {[
+                ['Critical Patient Alerts',   'Immediate alerts for critical conditions', true ],
+                ['Missed Dose Alerts',         'When patients miss medication doses',      true ],
+                ['New Report Uploads',         'When patients upload medical reports',     true ],
+                ['SMS Delivery Confirmation',  'Confirm SMS sent via Twilio',              false],
+                ['Weekly Patient Summary',     'Weekly adherence report',                  true ],
+                ['Low Adherence Warning',      'Alert when adherence drops below 70%',     true ],
+              ].map(([label, sub, on], i, arr) => (
+                <View key={String(label)} style={[ft.prefRow,
+                  i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.borderSoft }]}>
                   <View style={{ flex: 1, marginRight: 12 }}>
-                    <Text style={{ fontWeight: '600', fontSize: 14, color: Colors.gray800 }}>{pref.label}</Text>
-                    <Text style={{ fontSize: 12, color: Colors.gray400, marginTop: 2 }}>{pref.sub}</Text>
+                    <Text style={{ fontWeight: '600', fontSize: 13, color: colors.textPrimary }}>{String(label)}</Text>
+                    <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: 2 }}>{String(sub)}</Text>
                   </View>
-                  <Switch
-                    value={toggles[i]}
-                    onValueChange={v => setToggles(prev => prev.map((t, idx) => idx === i ? v : t))}
-                    trackColor={{ false: Colors.gray200, true: Colors.primary + '80' }}
-                    thumbColor={toggles[i] ? Colors.primary : Colors.gray400}
-                  />
+                  <Switch value={Boolean(on)}
+                    trackColor={{ false: colors.border, true: accent + '80' }}
+                    thumbColor={on ? accent : colors.gray400} />
                 </View>
               ))}
-              <Button label={saved ? '✅ Saved!' : 'Save Preferences'} onPress={save} style={{ marginTop: 16, width: '100%' }} />
             </View>
           </Card>
         )}
 
-        {/* SECURITY TAB */}
-        {activeTab === 'security' && (
+        {tab === 'security' && (
           <>
             <Card>
               <CardHeader title="🔑 Change Password" />
               <View style={{ padding: 16 }}>
-                {['Current Password', 'New Password', 'Confirm New Password'].map((p, i) => (
-                  <View key={i} style={styles.field}>
-                    <Text style={styles.label}>{p}</Text>
-                    <TextInput style={styles.input} placeholder={i === 1 ? 'Min. 8 characters' : ''} secureTextEntry placeholderTextColor={Colors.gray400} />
-                  </View>
-                ))}
-                <Button label="Update Password" onPress={() => Alert.alert('Updated', 'Password changed successfully.')} style={{ width: '100%', marginTop: 4 }} />
+                <Field label="Current Password" value="" secure colors={colors} />
+                <Field label="New Password"     value="" secure colors={colors} />
+                <Field label="Confirm Password" value="" secure colors={colors} />
+                <Button label="Update Password" onPress={() => Alert.alert('Updated ✅')} />
               </View>
             </Card>
-
-            <Card style={{ marginTop: 16 }}>
-              <CardHeader title="📱 Active Sessions" />
+            <Card style={{ marginTop: 0 }}>
+              <CardHeader title="📋 Doctor License" />
               <View style={{ padding: 16 }}>
-                {[
-                  { device: 'iPhone 14 Pro', location: 'Noida, India', time: 'Current session', current: true },
-                  { device: 'Chrome on Windows', location: 'Noida, India', time: '2 hrs ago', current: false },
-                ].map((s, i) => (
-                  <View key={i} style={[{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }, i === 0 && { borderBottomWidth: 1, borderBottomColor: Colors.gray100 }]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: '600', fontSize: 13, color: Colors.gray800 }}>{s.device}</Text>
-                      <Text style={{ fontSize: 11, color: Colors.gray400 }}>{s.location} · {s.time}</Text>
-                    </View>
-                    {s.current
-                      ? <Badge label="Current" type="success" />
-                      : <Button label="Revoke" onPress={() => {}} size="sm" variant="danger" />
-                    }
+                {[['License No.','MCI-2024-78901'],['Valid Until','December 2026'],['Issued By','Medical Council of India']].map(([l, v], i, a) => (
+                  <View key={l} style={[{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
+                    i < a.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.borderSoft }]}>
+                    <Text style={{ fontSize: 12, color: colors.textMuted }}>{l}</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textPrimary }}>{v}</Text>
                   </View>
                 ))}
-              </View>
-            </Card>
-
-            <Card style={{ marginTop: 16, borderWidth: 1, borderColor: Colors.dangerSoft }}>
-              <CardHeader title="⚠️ Danger Zone" />
-              <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ flex: 1, marginRight: 12 }}>
-                  <Text style={{ fontWeight: '600', fontSize: 14, color: Colors.gray800 }}>Delete Account</Text>
-                  <Text style={{ fontSize: 12, color: Colors.gray400, marginTop: 2 }}>Permanently delete your MediVault account and all data.</Text>
-                </View>
-                <Button label="Delete" onPress={() => Alert.alert('Are you sure?', 'This action cannot be undone.')} variant="danger" size="sm" />
               </View>
             </Card>
           </>
         )}
-
       </ScrollView>
+    </>
+  );
+}
+
+/* ═══════════════════ PATIENT PROFILE ═══════════════════ */
+function PatientProfile() {
+  const { colors, isDark } = useTheme();
+  const [tab, setTab]           = useState('profile');
+  const [bloodType, setBloodType] = useState('O+');
+  const accent = colors.teal;
+
+  const tabs = [
+    { key: 'profile',       label: '👤 Profile'      },
+    { key: 'health',        label: '🏥 Health'        },
+    { key: 'notifications', label: '🔔 Notifs'        },
+    { key: 'security',      label: '🔒 Security'     },
+  ];
+
+  const bloodTypes = ['A+','A-','B+','B-','O+','O-','AB+','AB-'];
+
+  return (
+    <>
+      {/* Header */}
+      <View style={[ph.header, { backgroundColor: isDark ? '#052e2e' : '#064E4E' }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+          <View style={ph.avatar}>
+            <Text style={ph.avatarTxt}>RS</Text>
+            <View style={ph.editBtn}><Text style={{ fontSize: 10 }}>✏️</Text></View>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={ph.name}>Rahul Singh</Text>
+            <Text style={ph.email}>rahul.singh@email.com · Patient</Text>
+            <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>Member since March 2026</Text>
+          </View>
+        </View>
+        {/* Chips */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+          {['🩸 O+','⚠️ Penicillin Allergy','🆔 MV-2024-RS-001'].map(c => (
+            <View key={c} style={ph.chip}><Text style={ph.chipTxt}>{c}</Text></View>
+          ))}
+        </View>
+        {/* Stats */}
+        <View style={ph.statsRow}>
+          {[['❤️','85','Health'],['✅','92%','Adherence'],['🔥','7d','Streak'],['💊','3','Medicines']].map(([ic, v, l]) => (
+            <View key={l} style={ph.statItem}>
+              <Text style={{ fontSize: 16 }}>{ic}</Text>
+              <Text style={ph.statVal}>{v}</Text>
+              <Text style={ph.statLbl}>{l}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <TabBar tabs={tabs} active={tab} onSelect={setTab} accent={accent} />
+
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+        {tab === 'profile' && (
+          <Card>
+            <CardHeader title="Personal Information" />
+            <View style={{ padding: 16 }}>
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[ft.label, { color: colors.textMuted }]}>First Name</Text>
+                  <TextInput style={[ft.input, { backgroundColor: colors.bgPage, borderColor: colors.border, color: colors.textPrimary }]} defaultValue="Rahul" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[ft.label, { color: colors.textMuted }]}>Last Name</Text>
+                  <TextInput style={[ft.input, { backgroundColor: colors.bgPage, borderColor: colors.border, color: colors.textPrimary }]} defaultValue="Singh" />
+                </View>
+              </View>
+              <Field label="Email"   value="rahul.singh@email.com" colors={colors} />
+              <Field label="Phone"   value="+91 98765 43210"        colors={colors} />
+              <Field label="Address" value="A-42, Sector 18, Noida" colors={colors} />
+              <Button label="Save Changes" onPress={() => Alert.alert('Saved ✅')} />
+            </View>
+          </Card>
+        )}
+
+        {tab === 'health' && (
+          <Card>
+            <CardHeader title="🩺 Medical Details" />
+            <View style={{ padding: 16 }}>
+              <Text style={[ft.label, { color: colors.textMuted }]}>Blood Type</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                {bloodTypes.map(b => (
+                  <TouchableOpacity key={b} onPress={() => setBloodType(b)}
+                    style={[ft.chip, { backgroundColor: bloodType === b ? accent : colors.bgPage, borderColor: bloodType === b ? accent : colors.border }]}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: bloodType === b ? 'white' : colors.textMuted }}>{b}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Field label="Height (cm)"       value="175"                           colors={colors} />
+              <Field label="Weight (kg)"       value="72"                            colors={colors} />
+              <Field label="Allergies"         value="Penicillin, Sulfa drugs"       colors={colors} />
+              <Field label="Conditions"        value="None"                          colors={colors} />
+              <Field label="Emergency Contact" value="Amit Singh — +91 87654 32109" colors={colors} />
+              <Button label="Save Health Info" onPress={() => Alert.alert('Saved ✅')} />
+            </View>
+          </Card>
+        )}
+
+        {tab === 'notifications' && (
+          <Card>
+            <CardHeader title="🔔 Notification Preferences" />
+            <View style={{ padding: 16 }}>
+              {[
+                ['Medication Reminders',   'Get notified 15 min before each dose',    true ],
+                ['Missed Dose Alerts',      'Alert when a dose is missed',              true ],
+                ['Doctor Messages',         'Notifications from your doctor',           true ],
+                ['AI Report Ready',         'When AI finishes analysing your report',   true ],
+                ['Weekly Adherence Report', 'Summary of your weekly medication intake', false],
+                ['Streak Milestones',       'Celebrate your medication streaks!',       true ],
+              ].map(([label, sub, on], i, arr) => (
+                <View key={String(label)} style={[ft.prefRow,
+                  i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.borderSoft }]}>
+                  <View style={{ flex: 1, marginRight: 12 }}>
+                    <Text style={{ fontWeight: '600', fontSize: 13, color: colors.textPrimary }}>{String(label)}</Text>
+                    <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: 2 }}>{String(sub)}</Text>
+                  </View>
+                  <Switch value={Boolean(on)}
+                    trackColor={{ false: colors.border, true: accent + '80' }}
+                    thumbColor={on ? accent : colors.gray400} />
+                </View>
+              ))}
+            </View>
+          </Card>
+        )}
+
+        {tab === 'security' && (
+          <>
+            <Card>
+              <CardHeader title="🔑 Change Password" />
+              <View style={{ padding: 16 }}>
+                <Field label="Current Password" value="" secure colors={colors} />
+                <Field label="New Password"     value="" secure colors={colors} />
+                <Field label="Confirm Password" value="" secure colors={colors} />
+                <Button label="Update Password" onPress={() => Alert.alert('Updated ✅')} />
+              </View>
+            </Card>
+            <Card style={{ marginTop: 0 }}>
+              <CardHeader title="⚠️ Danger Zone" />
+              <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ flex: 1, marginRight: 12 }}>
+                  <Text style={{ fontWeight: '600', fontSize: 14, color: colors.textPrimary }}>Delete Account</Text>
+                  <Text style={{ fontSize: 12, color: colors.textFaint, marginTop: 2 }}>Permanently delete your account and all data.</Text>
+                </View>
+                <Button label="Delete" onPress={() => Alert.alert('Are you sure?')} variant="danger" size="sm" />
+              </View>
+            </Card>
+          </>
+        )}
+      </ScrollView>
+    </>
+  );
+}
+
+/* ═══════════════════ ROOT EXPORT ═══════════════════ */
+export default function ProfileScreen() {
+  const { role, colors } = useTheme();
+  const isDoctor = role === 'doctor';
+  return (
+    <DrawerLayout
+      title="Profile & Settings"
+      subtitle={isDoctor ? 'Doctor Account' : 'Patient Account'}
+      role={role}
+      userName={isDoctor ? 'Dr. Sharma' : 'Rahul Singh'}
+      userInitial={isDoctor ? 'DS' : 'RS'}
+      showBack
+    >
+      <View style={{ flex: 1, backgroundColor: colors.bgPage }}>
+        {isDoctor ? <DoctorProfile /> : <PatientProfile />}
+      </View>
     </DrawerLayout>
   );
 }
 
-const styles = StyleSheet.create({
-  profileBanner: { backgroundColor: Colors.primaryDark, paddingHorizontal: 20, paddingBottom: 20, flexDirection: 'row', alignItems: 'center', gap: 16 },
-  avatarWrap: { width: 68, height: 68, borderRadius: 34, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: 'rgba(255,255,255,0.4)', position: 'relative' },
-  avatarText: { fontSize: 24, fontWeight: '800', color: 'white' },
-  editBadge: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' },
-  profileName: { fontSize: 20, fontWeight: '800', color: 'white', letterSpacing: -0.5 },
-  profileEmail: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  profileChip: { backgroundColor: 'rgba(255,255,255,0.15)', paddingVertical: 3, paddingHorizontal: 10, borderRadius: 20 },
-  profileChipText: { fontSize: 11, color: 'white' },
-  tabRow: { backgroundColor: Colors.white, borderBottomWidth: 1, borderBottomColor: Colors.border, maxHeight: 50 },
-  tab: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: Colors.primary },
-  tabText: { fontSize: 13, fontWeight: '600', color: Colors.gray400 },
-  tabTextActive: { color: Colors.primary },
-  row: { flexDirection: 'row' },
-  field: { marginBottom: 14 },
-  label: { fontSize: 12, fontWeight: '600', color: Colors.gray700, marginBottom: 6 },
-  input: { backgroundColor: Colors.gray50, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 10, paddingVertical: 11, paddingHorizontal: 14, fontSize: 14, color: Colors.gray900 },
-  genderRow: { flexDirection: 'row', gap: 8 },
-  genderBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center', backgroundColor: Colors.white },
-  genderBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primarySoft },
-  genderText: { fontSize: 13, fontWeight: '600', color: Colors.gray600 },
-  bloodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  bloodBtn: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.white },
-  bloodBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primarySoft },
-  bloodText: { fontSize: 12, fontWeight: '600', color: Colors.gray600 },
+/* ── Doctor header styles ── */
+const dh = StyleSheet.create({
+  header: { padding: 20, paddingBottom: 20 },
+  avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)' },
+  name:   { fontSize: 20, fontWeight: '900', color: 'white', letterSpacing: -0.5 },
+  spec:   { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+  hosp:   { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 1 },
+  chip:   { backgroundColor: 'rgba(255,255,255,0.12)', paddingVertical: 5, paddingHorizontal: 11, borderRadius: 20 },
+  chipTxt:{ fontSize: 11, color: 'white', fontWeight: '600' },
+  statsRow:{ flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 14, padding: 14 },
+  statItem:{ flex: 1, alignItems: 'center' },
+  statVal: { fontSize: 18, fontWeight: '900', color: 'white' },
+  statLbl: { fontSize: 10, color: "rgba(255,255,255,0.55)", marginTop: 2, textAlign: "center" },
+});
+
+/* ── Patient header styles ── */
+const ph = StyleSheet.create({
+  header: { padding: 20, paddingBottom: 20 },
+  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', position: 'relative' },
+  avatarTxt: { fontSize: 22, fontWeight: '900', color: 'white' },
+  editBtn: { position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderRadius: 11, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' },
+  name:  { fontSize: 20, fontWeight: '900', color: 'white', letterSpacing: -0.5 },
+  email: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
+  chip:  { backgroundColor: 'rgba(255,255,255,0.12)', paddingVertical: 5, paddingHorizontal: 11, borderRadius: 20 },
+  chipTxt: { fontSize: 11, color: 'white', fontWeight: '600' },
+  statsRow: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 6 },
+  statItem: { flex: 1, alignItems: 'center', gap: 2 },
+  statVal:  { fontSize: 15, fontWeight: '900', color: 'white' },
+  statLbl:  { fontSize: 9, color: 'rgba(255,255,255,0.5)', textAlign: 'center' },
+});
+
+/* ── Shared form + tab styles ── */
+const ft = StyleSheet.create({
+  tabRow: { borderBottomWidth: 1, maxHeight: 50 },
+  tab: { paddingHorizontal: 14, paddingVertical: 13, borderBottomWidth: 2.5, borderBottomColor: 'transparent', marginRight: 2 },
+  tabTxt: { fontSize: 12, fontWeight: '600' },
+  label: { fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  input: { borderWidth: 1.5, borderRadius: 10, paddingVertical: 11, paddingHorizontal: 14, fontSize: 14 },
+  chip:  { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1.5 },
   prefRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14 },
 });
