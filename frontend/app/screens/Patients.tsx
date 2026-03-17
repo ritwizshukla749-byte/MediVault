@@ -3,125 +3,183 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from 
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import DrawerLayout from '../../components/DrawerLayout';
-import Colors from '../../constants/colors';
 import { StatCard, Card, Badge, Button, ProgressBar, Avatar } from '../../components/UI';
 import { allPatients } from '../../data/mockData';
 
-const STATUS_COLORS: Record<string, { badge: 'danger' | 'warning' | 'success'; bar: string }> = {
-  Critical: { badge: 'danger',  bar: Colors.danger  },
-  Monitor:  { badge: 'warning', bar: Colors.warning },
-  Stable:   { badge: 'success', bar: Colors.success },
+const STATUS_STYLE: Record<string, { badge: 'danger'|'warning'|'success'; bar: string }> = {
+  Critical: { badge: 'danger',  bar: '#DC2626' },
+  Monitor:  { badge: 'warning', bar: '#D97706' },
+  Stable:   { badge: 'success', bar: '#16A34A' },
 };
 
 export default function PatientsScreen() {
   const router = useRouter();
-  const { role, userName, userInitial, colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
 
   const filtered = allPatients.filter(p => {
-    const ms = p.name.toLowerCase().includes(search.toLowerCase()) || p.condition.toLowerCase().includes(search.toLowerCase());
-    return ms && (filter === 'All' || p.status === filter);
+    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase())
+      || p.condition.toLowerCase().includes(search.toLowerCase())
+      || p.doctor.toLowerCase().includes(search.toLowerCase());
+    return matchSearch && (filter === 'All' || p.status === filter);
   });
 
-  return (
-    <DrawerLayout title="Patients" subtitle="All your patients" showBack>
-        <Button label="+ Add" onPress={() => router.push('/screens/PatientDetails')} size="sm" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
-      
+  const viewPatient = (p: typeof allPatients[0]) => {
+    router.push({ pathname: '/screens/PatientDetails', params: { id: p.id } } as any);
+  };
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+  const criticalCount = allPatients.filter(p => p.status === 'Critical').length;
+  const monitorCount  = allPatients.filter(p => p.status === 'Monitor').length;
+  const stableCount   = allPatients.filter(p => p.status === 'Stable').length;
+
+  return (
+    <DrawerLayout title="Patients" subtitle={`${allPatients.length} total patients`}
+      role="doctor" userName="Dr. Sharma" userInitial="DS" showBack
+      headerRight={
+        <Button label="+ Add" onPress={() => router.push('/screens/PatientDetails' as any)} size="sm"
+          style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+      }>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: colors.bgPage }}>
 
         {/* Stats */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statHalf}><StatCard icon="👥" value="28" label="Total Patients" /></View>
-          <View style={styles.statHalf}><StatCard icon="🚨" value="2" label="Critical" iconBg={Colors.dangerSoft} valueColor={Colors.danger} /></View>
-          <View style={styles.statHalf}><StatCard icon="👁️" value="5" label="Under Monitor" iconBg={Colors.warningSoft} valueColor={Colors.warning} /></View>
-          <View style={styles.statHalf}><StatCard icon="✅" value="21" label="Stable" iconBg={Colors.successSoft} valueColor={Colors.success} /></View>
+        <View style={s.statsGrid}>
+          <View style={s.statHalf}><StatCard icon="👥" value={allPatients.length} label="Total Patients" /></View>
+          <View style={s.statHalf}><StatCard icon="🚨" value={criticalCount} label="Critical"      iconBg={colors.dangerSoft}  valueColor={colors.danger}  /></View>
+          <View style={s.statHalf}><StatCard icon="👁️" value={monitorCount}  label="Under Monitor" iconBg={colors.warningSoft} valueColor={colors.warning} /></View>
+          <View style={s.statHalf}><StatCard icon="✅" value={stableCount}   label="Stable"        iconBg={colors.successSoft} valueColor={colors.success} /></View>
         </View>
 
-        {/* Search */}
-        <Card>
-          <View style={{ padding: 14 }}>
-            <View style={styles.searchBox}>
-              <Text style={{ marginRight: 6 }}>🔍</Text>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search by name or condition…"
-                value={search}
-                onChangeText={setSearch}
-                placeholderTextColor={Colors.gray400}
-              />
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
-              {['All', 'Critical', 'Monitor', 'Stable'].map(f => (
-                <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.filterBtn, filter === f && styles.filterBtnActive]}>
-                  <Text style={[styles.filterText, filter === f && { color: 'white' }]}>{f}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+        {/* Search + Filter */}
+        <View style={[s.searchCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+          {/* Search bar */}
+          <View style={[s.searchRow, { backgroundColor: colors.bgPage, borderColor: colors.border }]}>
+            <Text style={{ fontSize: 16, marginRight: 8, color: colors.textFaint }}>🔍</Text>
+            <TextInput
+              style={[s.searchInput, { color: colors.textPrimary }]}
+              placeholder="Search by name, condition, doctor…"
+              placeholderTextColor={colors.textFaint}
+              value={search}
+              onChangeText={setSearch}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <Text style={{ color: colors.textFaint, fontSize: 16, marginLeft: 6 }}>✕</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        </Card>
+          {/* Filter pills */}
+          <View style={s.filterRow}>
+            {['All', 'Critical', 'Monitor', 'Stable'].map(f => (
+              <TouchableOpacity key={f} onPress={() => setFilter(f)}
+                style={[s.filterBtn, {
+                  backgroundColor: filter === f
+                    ? (f === 'Critical' ? colors.danger : f === 'Monitor' ? colors.warning : f === 'Stable' ? colors.success : colors.primary)
+                    : colors.bgPage,
+                  borderColor: filter === f
+                    ? (f === 'Critical' ? colors.danger : f === 'Monitor' ? colors.warning : f === 'Stable' ? colors.success : colors.primary)
+                    : colors.border,
+                }]}>
+                <Text style={[s.filterTxt, { color: filter === f ? 'white' : colors.textMuted }]}>{f}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {/* Result count */}
+          <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: 8 }}>
+            Showing {filtered.length} of {allPatients.length} patients
+          </Text>
+        </View>
 
         {/* Patient Cards */}
-        {filtered.map(p => {
-          const sc = STATUS_COLORS[p.status] || STATUS_COLORS.Stable;
-          return (
-            <Card key={p.id} style={{ marginBottom: 12 }}>
-              <View style={{ height: 4, backgroundColor: sc.bar }} />
-              <View style={{ padding: 14 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Avatar initials={p.name.split(' ').map(n => n[0]).join('')} size={44} />
-                    <View>
-                      <Text style={{ fontWeight: '700', fontSize: 14, color: Colors.gray800 }}>{p.name}</Text>
-                      <Text style={{ fontSize: 11, color: Colors.gray400 }}>Age {p.age} · {p.blood}</Text>
+        <View style={{ gap: 12 }}>
+          {filtered.map(p => {
+            const sc = STATUS_STYLE[p.status] || STATUS_STYLE.Stable;
+            return (
+              <View key={p.id} style={[s.patientCard, {
+                backgroundColor: colors.bgCard, borderColor: colors.border,
+              }]}>
+                {/* Status top line */}
+                <View style={[s.statusLine, { backgroundColor: sc.bar }]} />
+
+                <View style={{ padding: 14 }}>
+                  {/* Top row */}
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                      <View style={[s.avatar, { backgroundColor: colors.primarySoft }]}>
+                        <Text style={{ fontSize: 14, fontWeight: '800', color: colors.primary }}>
+                          {p.name.split(' ').map(n => n[0]).join('')}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontWeight: '800', fontSize: 15, color: colors.textPrimary }}>{p.name}</Text>
+                        <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>Age {p.age} · {p.blood}</Text>
+                      </View>
                     </View>
+                    <Badge label={p.status} type={sc.badge} />
                   </View>
-                  <Badge label={p.status} type={sc.badge} />
-                </View>
 
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <Badge label={p.condition} />
-                  <Text style={{ fontSize: 11, color: Colors.gray400 }}>🔥 {p.streak}d streak</Text>
-                </View>
-
-                <View style={{ marginBottom: 10 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text style={{ fontSize: 11, color: Colors.gray500 }}>Adherence</Text>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: p.adherence < 75 ? Colors.danger : Colors.success }}>{p.adherence}%</Text>
+                  {/* Tags row */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                    <Badge label={p.condition} type="primary" />
+                    <Text style={{ fontSize: 12, color: colors.textMuted }}>🔥 {p.streak}d streak</Text>
+                    <Text style={{ fontSize: 12, color: colors.textFaint }}>· {p.lastSeen}</Text>
                   </View>
-                  <ProgressBar value={p.adherence} color={p.adherence < 75 ? Colors.danger : Colors.success} />
-                </View>
 
-                <Text style={{ fontSize: 11, color: Colors.gray400, marginBottom: 12 }}>
-                  👨‍⚕️ {p.doctor} · Last seen {p.lastSeen}
-                </Text>
+                  {/* Adherence bar */}
+                  <View style={{ marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <Text style={{ fontSize: 12, color: colors.textMuted }}>Adherence</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800',
+                        color: p.adherence < 75 ? colors.danger : colors.success }}>{p.adherence}%</Text>
+                    </View>
+                    <ProgressBar value={p.adherence}
+                      color={p.adherence < 75 ? colors.danger : colors.success} height={6} />
+                  </View>
 
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <Button label="View Details" onPress={() => router.push('/screens/PatientDetails')} style={{ flex: 1 }} size="sm" />
-                  <Button label="📱 SMS" onPress={() => {}} variant="outline" size="sm" />
+                  {/* Doctor */}
+                  <Text style={{ fontSize: 11, color: colors.textFaint, marginBottom: 12 }}>
+                    👨‍⚕️ {p.doctor}
+                  </Text>
+
+                  {/* Actions */}
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <Button label="View Details" onPress={() => viewPatient(p)} style={{ flex: 1 }} size="sm" />
+                    <Button label="📱 SMS" onPress={() => {}} variant="outline" size="sm" />
+                  </View>
                 </View>
               </View>
-            </Card>
-          );
-        })}
+            );
+          })}
+        </View>
 
         {filtered.length === 0 && (
           <View style={{ padding: 40, alignItems: 'center' }}>
-            <Text style={{ color: Colors.gray400 }}>No patients match your search.</Text>
+            <Text style={{ fontSize: 40, marginBottom: 10 }}>🔍</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 15, fontWeight: '600' }}>No patients found</Text>
+            <Text style={{ color: colors.textFaint, fontSize: 12, marginTop: 4 }}>Try a different search term</Text>
           </View>
         )}
+
       </ScrollView>
     </DrawerLayout>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
   statHalf: { width: '48%' },
-  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.gray50, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
-  searchInput: { flex: 1, fontSize: 14, color: Colors.gray900 },
-  filterBtn: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1.5, borderColor: Colors.border, marginRight: 8, backgroundColor: Colors.white },
-  filterBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  filterText: { fontSize: 12, fontWeight: '600', color: Colors.gray600 },
+  searchCard: { borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 16,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5,
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 },
+  searchInput: { flex: 1, fontSize: 14 },
+  filterRow: { flexDirection: 'row', gap: 8 },
+  filterBtn: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1.5 },
+  filterTxt: { fontSize: 12, fontWeight: '600' },
+  patientCard: { borderRadius: 16, borderWidth: 1, overflow: 'hidden',
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  statusLine: { height: 4 },
+  avatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
 });

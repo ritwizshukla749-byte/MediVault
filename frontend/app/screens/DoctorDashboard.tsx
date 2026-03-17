@@ -48,24 +48,90 @@ function AlertCard({ alert }: { alert: typeof doctorAlerts[0] }) {
   );
 }
 
+// ── Fix: extract QuickAction item into its own component so useRef is legal ──
+function QuickActionItem({ icon, label, route, bg, fg }: {
+  icon: string; label: string; route: string; bg: string; fg: string;
+}) {
+  const router = useRouter();
+  const scale  = useRef(new Animated.Value(1)).current;
+  return (
+    <Animated.View style={[s.qaItem, { transform: [{ scale }] }]}>
+      <TouchableOpacity
+        onPressIn={() => Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, tension: 200 }).start()}
+        onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 200 }).start()}
+        onPress={() => router.push(route as any)}
+        style={[s.qaBtn, { backgroundColor: bg, borderColor: fg + '30' }]}
+        activeOpacity={1}>
+        <Text style={{ fontSize: 26 }}>{icon}</Text>
+        <Text style={[s.qaLabel, { color: fg }]}>{label}</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+// ── Fix: extract PatientRow into its own component so useRef is legal ──
+function PatientRow({ p }: { p: typeof allPatients[0] }) {
+  const router = useRouter();
+  const { colors } = useTheme();
+  const scale = useRef(new Animated.Value(1)).current;
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <TouchableOpacity
+        onPressIn={() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, tension: 200 }).start()}
+        onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 200 }).start()}
+        onPress={() => router.push({ pathname: '/screens/PatientDetails', params: { id: p.id } } as any)}
+        style={[s.patientRow, { backgroundColor: colors.bgCardHover, borderColor: colors.border }]}
+        activeOpacity={1}>
+        <Avatar initials={p.name.split(' ').map(n => n[0]).join('')} size={40} />
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={{ fontWeight: '700', fontSize: 14, color: colors.textPrimary }}>{p.name}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+            <Badge label={p.condition} />
+            <Text style={{ fontSize: 11, color: colors.textFaint }}>🔥 {p.streak}d</Text>
+          </View>
+        </View>
+        <View style={{ alignItems: 'flex-end', gap: 4 }}>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: p.adherence < 75 ? colors.danger : colors.success }}>{p.adherence}%</Text>
+          <ProgressBar value={p.adherence} color={p.adherence < 75 ? colors.danger : colors.success} style={{ width: 56, height: 5 }} />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
 export default function DoctorDashboard() {
   const router = useRouter();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+
+  const quickActions = [
+    { icon: '👥', label: 'Patients',  route: '/screens/Patients',      bg: colors.primarySoft,  fg: colors.primary  },
+    { icon: '🚨', label: 'Alerts',    route: '/screens/Alerts',        bg: colors.dangerSoft,   fg: colors.danger   },
+    { icon: '💬', label: 'Messages',  route: '/screens/Messages',      bg: colors.tealSoft,     fg: colors.teal     },
+    { icon: '🔔', label: 'Notifs',    route: '/screens/Notifications', bg: colors.warningSoft,  fg: colors.warning  },
+  ];
 
   return (
-    <DrawerLayout title="Doctor Dashboard" subtitle="Monday, 14 March 2026"
-      role="doctor" userName="Dr. Sharma" userInitial="DS"
+    <DrawerLayout
+      title="Doctor Dashboard"
+      subtitle="Monday, 14 March 2026"
+      role="doctor"
+      userName="Dr. Sharma"
+      userInitial="DS"
       headerRight={
-        <Button label="+ Add" onPress={() => router.push('/screens/PatientDetails' as any)} size="sm"
-          style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+        <Button
+          label="+ Add"
+          onPress={() => router.push('/screens/PatientDetails' as any)}
+          size="sm"
+          style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+        />
       }>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false} style={{ backgroundColor: colors.bgPage }}>
 
         {/* ── Stats ── */}
         <View style={s.statsGrid}>
-          <View style={s.statHalf}><StatCard icon="👥" value="28"  label="Total Patients" /></View>
-          <View style={s.statHalf}><StatCard icon="🚨" value="2"    label="Critical Alerts" iconBg={colors.dangerSoft}  valueColor={colors.danger}  /></View>
+          <View style={s.statHalf}><StatCard icon="👥" value={allPatients.length} label="Total Patients" /></View>
+          <View style={s.statHalf}><StatCard icon="🚨" value={doctorAlerts.filter(a => a.severity === 'critical').length} label="Critical Alerts" iconBg={colors.dangerSoft}  valueColor={colors.danger}  /></View>
           <View style={s.statHalf}><StatCard icon="📊" value="92%" label="Avg Adherence"   iconBg={colors.successSoft} valueColor={colors.success} /></View>
           <View style={s.statHalf}><StatCard icon="📋" value="5"   label="Pending Reports" iconBg={colors.warningSoft} valueColor={colors.warning} /></View>
         </View>
@@ -112,27 +178,9 @@ export default function DoctorDashboard() {
 
         {/* ── Quick Actions ── */}
         <View style={s.qaGrid}>
-          {[
-            { icon: '👥', label: 'Patients',  route: '/screens/Patients',         bg: colors.primarySoft,  fg: colors.primary  },
-            { icon: '🚨', label: 'Alerts',    route: '/screens/Alerts',           bg: colors.dangerSoft,   fg: colors.danger   },
-            { icon: '💬', label: 'Messages',  route: '/screens/Messages',         bg: colors.tealSoft,     fg: colors.teal     },
-            { icon: '🔔', label: 'Notifs',    route: '/screens/Notifications',    bg: colors.warningSoft,  fg: colors.warning  },
-          ].map(a => {
-            const scale = useRef(new Animated.Value(1)).current;
-            return (
-              <Animated.View key={a.route} style={[s.qaItem, { transform: [{ scale }] }]}>
-                <TouchableOpacity
-                  onPressIn={() => Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, tension: 200 }).start()}
-                  onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 200 }).start()}
-                  onPress={() => router.push(a.route as any)}
-                  style={[s.qaBtn, { backgroundColor: a.bg, borderColor: a.fg + '30' }]}
-                  activeOpacity={1}>
-                  <Text style={{ fontSize: 26 }}>{a.icon}</Text>
-                  <Text style={[s.qaLabel, { color: a.fg }]}>{a.label}</Text>
-                </TouchableOpacity>
-              </Animated.View>
-            );
-          })}
+          {quickActions.map(a => (
+            <QuickActionItem key={a.route} {...a} />
+          ))}
         </View>
 
         {/* ── Patients Overview ── */}
@@ -141,32 +189,9 @@ export default function DoctorDashboard() {
             <Button label="View All" onPress={() => router.push('/screens/Patients' as any)} variant="outline" size="sm" />
           }/>
           <View style={{ padding: 16, gap: 14 }}>
-            {allPatients.slice(0, 4).map((p, i) => {
-              const scale = useRef(new Animated.Value(1)).current;
-              return (
-                <Animated.View key={p.id} style={{ transform: [{ scale }] }}>
-                  <TouchableOpacity
-                    onPressIn={() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, tension: 200 }).start()}
-                    onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 200 }).start()}
-                    onPress={() => router.push('/screens/PatientDetails' as any)}
-                    style={[s.patientRow, { backgroundColor: colors.bgCardHover, borderColor: colors.border }]}
-                    activeOpacity={1}>
-                    <Avatar initials={p.name.split(' ').map(n => n[0]).join('')} size={40} />
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={{ fontWeight: '700', fontSize: 14, color: colors.textPrimary }}>{p.name}</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                        <Badge label={p.condition} />
-                        <Text style={{ fontSize: 11, color: colors.textFaint }}>🔥 {p.streak}d</Text>
-                      </View>
-                    </View>
-                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '800', color: p.adherence < 75 ? colors.danger : colors.success }}>{p.adherence}%</Text>
-                      <ProgressBar value={p.adherence} color={p.adherence < 75 ? colors.danger : colors.success} style={{ width: 56, height: 5 }} />
-                    </View>
-                  </TouchableOpacity>
-                </Animated.View>
-              );
-            })}
+            {allPatients.slice(0, 4).map(p => (
+              <PatientRow key={p.id} p={p} />
+            ))}
           </View>
         </Card>
 

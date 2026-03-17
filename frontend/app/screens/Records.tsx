@@ -70,9 +70,13 @@ export default function RecordsScreen() {
   const visitTypes: RecordItem['type'][] = ['OPD', 'Admission', 'Check-up', 'Emergency'];
 
   return (
-    <DrawerLayout title="Medical Records" subtitle="Complete health history" showBack>
+    <DrawerLayout
+      title="Medical Records"
+      subtitle="Complete health history"
+      showBack
+      headerRight={
         <Button label="+ Add" onPress={() => setShowAdd(true)} size="sm" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
-      
+      }>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
 

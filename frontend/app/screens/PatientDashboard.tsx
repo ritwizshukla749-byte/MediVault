@@ -23,9 +23,63 @@ const tagType: Record<string, 'success'|'primary'|'warning'> = {
   Normal: 'success', Reviewed: 'primary', Pending: 'warning',
 };
 
+// ── Fix: extracted into its own component so useRef is valid ──
+function MedRow({ med }: { med: typeof medications[0] }) {
+  const { colors } = useTheme();
+  const scale = useRef(new Animated.Value(1)).current;
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <TouchableOpacity activeOpacity={1}
+        onPressIn={() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, tension: 200 }).start()}
+        onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 200 }).start()}
+        style={[s.medRow, { backgroundColor: colors.bgCardHover, borderColor: colors.border }]}>
+        <View style={[s.medDotBig, { backgroundColor: med.color + '22', borderColor: med.color + '55' }]}>
+          <View style={[s.medDotInner, { backgroundColor: med.color }]} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontWeight: '700', fontSize: 13, color: colors.textPrimary }}>{med.name}</Text>
+          <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: 1 }}>⏰ {med.time}</Text>
+        </View>
+        {med.status === 'due'
+          ? <Button label="Mark Taken ✓" onPress={() => {}} size="sm" />
+          : <Badge label="Upcoming" type="default" />
+        }
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+// ── Fix: extracted into its own component so useRef is valid ──
+function QuickActionItem({ icon, label, route, bg, fg }: {
+  icon: string; label: string; route: string; bg: string; fg: string;
+}) {
+  const router = useRouter();
+  const scale  = useRef(new Animated.Value(1)).current;
+  return (
+    <Animated.View style={[s.qaItem, { transform: [{ scale }] }]}>
+      <TouchableOpacity
+        onPressIn={() => Animated.spring(scale, { toValue: 0.91, useNativeDriver: true, tension: 200 }).start()}
+        onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 200 }).start()}
+        onPress={() => router.push(route as any)}
+        style={[s.qaBtn, { backgroundColor: bg, borderColor: fg + '30' }]}
+        activeOpacity={1}>
+        <Text style={{ fontSize: 28 }}>{icon}</Text>
+        <Text style={[s.qaLabel, { color: fg }]}>{label}</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
 export default function PatientDashboard() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+
+  const quickActions = [
+    { icon: '🩺', label: 'Symptoms',   route: '/screens/Symptoms',  bg: colors.primarySoft,  fg: colors.primary  },
+    { icon: '📋', label: 'Reports',    route: '/screens/Reports',   bg: colors.tealSoft,     fg: colors.teal     },
+    { icon: '💊', label: 'Medicines',  route: '/screens/Medicines', bg: colors.successSoft,  fg: colors.success  },
+    { icon: '🔲', label: 'QR Profile', route: '/screens/QRProfile', bg: colors.accentSoft,   fg: colors.accent   },
+  ];
 
   return (
     <DrawerLayout title="My Health Dashboard" subtitle="Good Morning, Rahul! 👋"
@@ -50,7 +104,6 @@ export default function PatientDashboard() {
             </View>
           </View>
           <Text style={{ fontSize: 44 }}>🩺</Text>
-          {/* Decorative circles */}
           <View style={s.circle1} />
           <View style={s.circle2} />
         </View>
@@ -71,55 +124,13 @@ export default function PatientDashboard() {
             </TouchableOpacity>
           }/>
           <View style={{ padding: 16, gap: 2 }}>
-            {medications.map(med => {
-              const scale = useRef(new Animated.Value(1)).current;
-              return (
-                <Animated.View key={med.id} style={{ transform: [{ scale }] }}>
-                  <TouchableOpacity activeOpacity={1}
-                    onPressIn={() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, tension: 200 }).start()}
-                    onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 200 }).start()}
-                    style={[s.medRow, { backgroundColor: colors.bgCardHover, borderColor: colors.border }]}>
-                    <View style={[s.medDotBig, { backgroundColor: med.color + '22', borderColor: med.color + '55' }]}>
-                      <View style={[s.medDotInner, { backgroundColor: med.color }]} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: '700', fontSize: 13, color: colors.textPrimary }}>{med.name}</Text>
-                      <Text style={{ fontSize: 11, color: colors.textFaint, marginTop: 1 }}>⏰ {med.time}</Text>
-                    </View>
-                    {med.status === 'due'
-                      ? <Button label="Mark Taken ✓" onPress={() => {}} size="sm" />
-                      : <Badge label="Upcoming" type="default" />
-                    }
-                  </TouchableOpacity>
-                </Animated.View>
-              );
-            })}
+            {medications.map(med => <MedRow key={med.id} med={med} />)}
           </View>
         </Card>
 
         {/* ── Quick Actions ── */}
         <View style={s.qaGrid}>
-          {[
-            { icon: '🩺', label: 'Symptoms',   route: '/screens/Symptoms',  bg: colors.primarySoft,  fg: colors.primary  },
-            { icon: '📋', label: 'Reports',    route: '/screens/Reports',   bg: colors.tealSoft,     fg: colors.teal     },
-            { icon: '💊', label: 'Medicines',  route: '/screens/Medicines', bg: colors.successSoft,  fg: colors.success  },
-            { icon: '🔲', label: 'QR Profile', route: '/screens/QRProfile', bg: colors.accentSoft,   fg: colors.accent   },
-          ].map(a => {
-            const scale = useRef(new Animated.Value(1)).current;
-            return (
-              <Animated.View key={a.route} style={[s.qaItem, { transform: [{ scale }] }]}>
-                <TouchableOpacity
-                  onPressIn={() => Animated.spring(scale, { toValue: 0.91, useNativeDriver: true, tension: 200 }).start()}
-                  onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 200 }).start()}
-                  onPress={() => router.push(a.route as any)}
-                  style={[s.qaBtn, { backgroundColor: a.bg, borderColor: a.fg + '30' }]}
-                  activeOpacity={1}>
-                  <Text style={{ fontSize: 28 }}>{a.icon}</Text>
-                  <Text style={[s.qaLabel, { color: a.fg }]}>{a.label}</Text>
-                </TouchableOpacity>
-              </Animated.View>
-            );
-          })}
+          {quickActions.map(a => <QuickActionItem key={a.route} {...a} />)}
         </View>
 
         {/* ── Score + Streak ── */}
