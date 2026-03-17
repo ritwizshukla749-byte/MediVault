@@ -1,6 +1,14 @@
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
+    firstName: {
+        type: String,
+        trim: true
+    },
+    lastName: {
+        type: String,
+        trim: true
+    },
     name: { 
         type: String,
         required: true,
@@ -12,6 +20,19 @@ const userSchema = new mongoose.Schema({
         unique: true,
         lowercase: true,
         trim: true
+    },
+    username: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        sparse: true,
+        unique: true
+    },
+    mobile: {
+        type: String,
+        trim: true,
+        sparse: true,
+        unique: true
     },
     passwordHash: {
         type: String,
@@ -50,6 +71,13 @@ const userSchema = new mongoose.Schema({
     hospitalAffiliation: {
         type: String,
         trim: true  
+    },
+    hospitalId: {
+        type: String,
+        trim: true,
+        uppercase: true,
+        sparse: true,
+        unique: true
     }
 }, { timestamps: true });
 

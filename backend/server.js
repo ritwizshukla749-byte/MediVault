@@ -7,6 +7,7 @@ const authRoutes = require("./routes/auth");
 const doctorRoutes = require("./routes/doctor");
 const patientRoutes = require("./routes/patient");
 const medicineRoutes = require("./routes/medicine");
+const symptomRoutes = require("./routes/symptom");
 connectDB();
 
 const app = express();
@@ -24,6 +25,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/doctor", doctorRoutes);
 app.use("/api/v1/patient", patientRoutes);
 app.use("/api/v1/medicine", medicineRoutes);
+app.use("/api/v1/symptom", symptomRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
@@ -34,6 +36,12 @@ app.use((err, req, res, next) => {
 
   if (err.code === "LIMIT_FILE_SIZE") {
     return res.status(400).json({ message: "File too large. Max size is 10MB." });
+  }
+
+  if (err.code === "LIMIT_UNEXPECTED_FILE") {
+    return res.status(400).json({
+      message: "Unexpected field. Upload file with form-data key 'report'.",
+    });
   }
 
   if (
