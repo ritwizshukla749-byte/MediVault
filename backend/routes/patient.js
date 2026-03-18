@@ -11,6 +11,10 @@ const {
   uploadMyReport,
   deleteMyReport,
 } = require("../controllers/reportController");
+const {
+	validateRecordIdParam,
+	validateReportIdParam,
+} = require("../middleware/requestValidation");
 
 const router = express.Router();
 
@@ -31,10 +35,10 @@ router.get("/medicines", (req, res) => {
 });
 
 router.get("/records", getMyRecords);
-router.get("/records/:id", getRecordById);
+router.get("/records/:id", validateRecordIdParam, getRecordById);
 
 router.get("/reports", getMyReports);
 router.post("/reports", uploadReport.single("report"), uploadMyReport);
-router.delete("/reports/:id", deleteMyReport);
+router.delete("/reports/:id", validateReportIdParam, deleteMyReport);
 
 module.exports = router;

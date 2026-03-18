@@ -2,7 +2,18 @@ const express = require("express");
 const dotenv = require("dotenv");
 dotenv.config();
 
+const validateEnv = require("./config/validateEnv");
 const connectDB = require("./config/db.js");
+
+try {
+  validateEnv();
+} catch (error) {
+  console.error(`Environment validation failed: ${error.message}`);
+  process.exit(1);
+}
+
+connectDB();
+
 const authRoutes = require("./routes/auth");
 const doctorRoutes = require("./routes/doctor");
 const patientRoutes = require("./routes/patient");
@@ -10,7 +21,6 @@ const medicineRoutes = require("./routes/medicine");
 const symptomRoutes = require("./routes/symptom");
 const notificationRoutes = require("./routes/notification");
 const qrRoutes = require("./routes/qr");
-connectDB();
 
 const app = express();
 

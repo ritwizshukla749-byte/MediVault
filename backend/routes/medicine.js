@@ -10,17 +10,23 @@ const {
 	getAdherenceSummary,
 	getWeeklyAdherenceTrend,
 } = require("../controllers/medicineController");
+const {
+	validateAddMedicine,
+	validateLogDose,
+	validateMarkDoseStatus,
+	validateAdherenceQuery,
+} = require("../middleware/requestValidation");
 
 const router = express.Router();
 
 router.use(verifyToken, requireRole("patient"));
 
-router.post("/", addMedicine);
+router.post("/", validateAddMedicine, addMedicine);
 router.get("/", getMyMedicines);
 router.get("/due", getDueDoses);
-router.post("/mark", markDoseStatus);
-router.get("/adherence/weekly", getWeeklyAdherenceTrend);
-router.post("/:id/log", logDose);
-router.get("/adherence", getAdherenceSummary);
+router.post("/mark", validateMarkDoseStatus, markDoseStatus);
+router.get("/adherence/weekly", validateAdherenceQuery, getWeeklyAdherenceTrend);
+router.post("/:id/log", validateLogDose, logDose);
+router.get("/adherence", validateAdherenceQuery, getAdherenceSummary);
 
 module.exports = router;

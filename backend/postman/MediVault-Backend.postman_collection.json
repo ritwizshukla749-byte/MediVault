@@ -1264,6 +1264,429 @@
           }
         }
       ]
+    },
+    {
+      "name": "24 P0 Smoke: Assign Patient To Doctor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/doctor/patients/{{patientId}}/assign",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "doctor",
+            "patients",
+            "{{patientId}}",
+            "assign"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Assign patient returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('Assign response has patient payload', function () {",
+              "  pm.expect(json).to.have.property('patient');",
+              "  pm.expect(json.patient).to.have.property('assignedDoctorId');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "25 P0 Smoke: Doctor Patients List",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/doctor/patients?limit=20",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "doctor",
+            "patients"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Doctor patients list returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('Doctor patients list shape is valid', function () {",
+              "  pm.expect(json).to.have.property('count');",
+              "  pm.expect(Array.isArray(json.patients)).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "26 P0 Smoke: Invalid Assign Patient Id",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/doctor/patients/123/assign",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "doctor",
+            "patients",
+            "123",
+            "assign"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Invalid patientId is rejected with 400', function () {",
+              "  pm.response.to.have.status(400);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('Validation error shape exists', function () {",
+              "  pm.expect(json.message).to.eql('Validation failed.');",
+              "  pm.expect(Array.isArray(json.errors)).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "27 P0 Smoke: Invalid Doctor Patients Limit",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/doctor/patients?limit=1000",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "doctor",
+            "patients"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "1000"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Invalid limit is rejected with 400', function () {",
+              "  pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "28 P0 Smoke: Invalid Medicine Payload",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dosage\": \"500mg\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/medicine",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "medicine"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Invalid medicine payload returns 400', function () {",
+              "  pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "29 P0 Smoke: Invalid Symptom Payload",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symptoms\": \"ok\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/symptom/check",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "symptom",
+            "check"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Invalid symptom payload returns 400', function () {",
+              "  pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "30 P0 Smoke: Invalid Notification Id",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/notifications/123/read",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications",
+            "123",
+            "read"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Invalid notification id returns 400', function () {",
+              "  pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "31 P0 Smoke: Invalid QR Scan Payload",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"context\": \"doctor-dashboard\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/qr/scan",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "qr",
+            "scan"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Invalid QR scan payload returns 400', function () {",
+              "  pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "32 P0 Smoke: Invalid Emergency QR Token",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/qr/emergency/short",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "qr",
+            "emergency",
+            "short"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Invalid emergency QR token returns 400', function () {",
+              "  pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "33 P0 Smoke: Unassign Patient From Doctor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/doctor/patients/{{patientId}}/unassign",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "doctor",
+            "patients",
+            "{{patientId}}",
+            "unassign"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Unassign patient returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
     }
   ],
   "event": [

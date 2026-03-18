@@ -8,16 +8,21 @@ const {
 	accessEmergencyProfile,
 	getMyScanAuditLogs,
 } = require("../controllers/qrController");
+const {
+	validateQrEmergencyTokenParam,
+	validateQrScan,
+	validateQrAuditQuery,
+} = require("../middleware/requestValidation");
 
 const router = express.Router();
 
-router.get("/emergency/:qrToken", accessEmergencyProfile);
+router.get("/emergency/:qrToken", validateQrEmergencyTokenParam, accessEmergencyProfile);
 
 router.use(verifyToken);
 
 router.get("/my-profile", requireRole("patient"), getMyQrProfilePayload);
 router.get("/my-emergency-profile", requireRole("patient"), getMyEmergencyQrPayload);
-router.post("/scan", requireRole("doctor"), scanPatientQr);
-router.get("/audit", requireRole("patient", "doctor"), getMyScanAuditLogs);
+router.post("/scan", requireRole("doctor"), validateQrScan, scanPatientQr);
+router.get("/audit", requireRole("patient", "doctor"), validateQrAuditQuery, getMyScanAuditLogs);
 
 module.exports = router;
