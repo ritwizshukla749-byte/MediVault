@@ -11,7 +11,7 @@ const BASE_URL = (() => {
     }
     return 'http://localhost:5000/api/v1';
   }
-  return 'https://your-production-api.com/api/v1';
+  return "https://medivault-cxas.onrender.com/api/v1";
 })();
 const TIMEOUT_MS = 60000;
 
