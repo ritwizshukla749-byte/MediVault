@@ -16,6 +16,7 @@ const {
 	validateReportIdParam,
 } = require("../middleware/requestValidation");
 const { getPatientDashboard } = require("../controllers/dashboardController");
+const { reportUploadLimiter } = require("../middleware/rateLimiters");
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ router.get("/records", getMyRecords);
 router.get("/records/:id", validateRecordIdParam, getRecordById);
 
 router.get("/reports", getMyReports);
-router.post("/reports", uploadReport.single("report"), uploadMyReport);
+router.post("/reports", reportUploadLimiter, uploadReport.single("report"), uploadMyReport);
 router.delete("/reports/:id", validateReportIdParam, deleteMyReport);
 
 module.exports = router;

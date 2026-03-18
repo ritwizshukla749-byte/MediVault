@@ -13,10 +13,16 @@ const {
 	validateQrScan,
 	validateQrAuditQuery,
 } = require("../middleware/requestValidation");
+const { emergencyQrLimiter } = require("../middleware/rateLimiters");
 
 const router = express.Router();
 
-router.get("/emergency/:qrToken", validateQrEmergencyTokenParam, accessEmergencyProfile);
+router.get(
+	"/emergency/:qrToken",
+	emergencyQrLimiter,
+	validateQrEmergencyTokenParam,
+	accessEmergencyProfile
+);
 
 router.use(verifyToken);
 
