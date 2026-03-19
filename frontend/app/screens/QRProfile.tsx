@@ -1,51 +1,41 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, Alert, ActivityIndicator, RefreshControl, Share, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '../../context/ThemeContext';
 import DrawerLayout from '../../components/DrawerLayout';
-import Svg, { Rect, Text as SvgText } from 'react-native-svg';
+import QRCode from 'react-native-qrcode-svg';
 import Colors from '../../constants/colors';
-import { Card, CardHeader, Badge, Button } from '../../components/UI';
-import { qrAPI } from '../../services/api';
-
-function QRCodeSVG({ token }: { token?: string }) {
-  return (
-    <Svg width={180} height={180} viewBox="0 0 180 180">
-      <Rect x={10} y={10} width={50} height={50} fill="none" stroke={Colors.primary} strokeWidth={6} rx={4} />
-      <Rect x={20} y={20} width={30} height={30} fill={Colors.primary} rx={2} />
-      <Rect x={120} y={10} width={50} height={50} fill="none" stroke={Colors.primary} strokeWidth={6} rx={4} />
-      <Rect x={130} y={20} width={30} height={30} fill={Colors.primary} rx={2} />
-      <Rect x={10} y={120} width={50} height={50} fill="none" stroke={Colors.primary} strokeWidth={6} rx={4} />
-      <Rect x={20} y={130} width={30} height={30} fill={Colors.primary} rx={2} />
-      {[70, 80, 90, 100, 110].flatMap(x =>
-        [70, 80, 90, 100, 110].map(y =>
-          (x + y) % 18 < 9
-            ? <Rect key={`${x}-${y}`} x={x} y={y} width={8} height={8} fill={Colors.primary} rx={1} />
-            : null
-        )
-      )}
-    </Svg>
-  );
-}
+import { Card, CardHeader, Button } from '../../components/UI';
+import { qrAPI, BASE_URL } from '../../services/api';
 
 export default function QRProfileScreen() {
   const router = useRouter();
-  const { role, userName, userInitial, colors } = useTheme();
-  const [qrToken, setQrToken] = useState<string>('');
-  const [patientName, setPatientName] = useState<string>('');
+  const { role, userName, userInitial } = useTheme();
+  const [emergencyData, setEmergencyData] = useState<{
+    qrToken: string;
+    url: string;
+    expiresIn: string;
+  } | null>(null);
+  const [profileData, setProfileData] = useState<{
+    qrToken: string;
+    payload: { name: string; bloodType: string | null; allergies: string[] };
+  } | null>(null);
   const [bloodType, setBloodType] = useState<string>('');
   const [allergies, setAllergies] = useState<string[]>([]);
-  const [emergencyContact, setEmergencyContact] = useState<{ name?: string; phone?: string } | undefined>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadProfile = async () => {
     try {
-      const data = await qrAPI.getMyProfile();
-      setQrToken(data.qrToken);
-      setPatientName(data.payload.name);
-      setBloodType(data.payload.bloodType || 'Unknown');
-      setAllergies(data.payload.allergies || []);
+      const [emergencyRes, profileRes] = await Promise.all([
+        qrAPI.getEmergencyProfile(),
+        qrAPI.getMyProfile(),
+      ]);
+      setEmergencyData(emergencyRes);
+      setProfileData(profileRes);
+      setBloodType(profileRes.payload.bloodType || 'Unknown');
+      setAllergies(profileRes.payload.allergies || []);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to load QR profile');
     } finally {
@@ -63,16 +53,37 @@ export default function QRProfileScreen() {
     setRefreshing(false);
   }, []);
 
+  const handleCopyLink = async () => {
+    if (emergencyData?.url) {
+      await Clipboard.setStringAsync(emergencyData.url);
+      Alert.alert('Copied', 'Emergency QR link copied to clipboard!');
+    }
+  };
+
+  const handleShare = async () => {
+    if (emergencyData?.url) {
+      try {
+        await Share.share({
+          message: `My MediVault Emergency QR Code: ${emergencyData.url}`,
+          url: emergencyData.url,
+          title: 'MediVault Emergency QR',
+        });
+      } catch (error) {
+        Alert.alert('Error', 'Failed to share');
+      }
+    }
+  };
+
   const emergency = [
     { label: 'Blood Type', value: bloodType || 'Unknown', icon: '🩸', highlight: false },
     { label: 'Allergies', value: allergies.length > 0 ? allergies.join(', ') : 'None', icon: '⚠️', highlight: allergies.length > 0 },
-    { label: 'Condition', value: 'N/A', icon: '🏥', highlight: false },
-    { label: 'Emergency Contact', value: emergencyContact ? `${emergencyContact.name} (${emergencyContact.phone || 'N/A'})` : 'Not set', icon: '📞', highlight: false },
+    { label: 'Emergency Contact', value: 'Not set', icon: '📞', highlight: false },
   ];
+
+  const emergencyUrl = emergencyData?.url || `${BASE_URL}/qr/emergency/${emergencyData?.qrToken}`;
 
   return (
     <DrawerLayout title="Emergency QR Profile" subtitle="Your emergency health card" showBack>
-
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}>
 
@@ -93,13 +104,25 @@ export default function QRProfileScreen() {
             ) : (
               <>
                 <View style={styles.qrBox}>
-                  <QRCodeSVG token={qrToken} />
+                  <QRCode
+                    value={emergencyUrl}
+                    size={180}
+                    backgroundColor="white"
+                    color={Colors.gray900}
+                  />
                 </View>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: Colors.gray800, marginBottom: 2 }}>{patientName}</Text>
-                <Text style={{ fontSize: 11, color: Colors.gray400, marginBottom: 16 }}>ID: {qrToken.substring(0, 16)}...</Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: Colors.gray800, marginBottom: 2 }}>
+                  {profileData?.payload.name || 'Patient'}
+                </Text>
+                <Text style={{ fontSize: 11, color: Colors.gray400, marginBottom: 4 }}>
+                  Expires in: {emergencyData?.expiresIn || '30d'}
+                </Text>
+                <Text style={{ fontSize: 10, color: Colors.gray300, marginBottom: 16 }} selectable>
+                  {emergencyUrl.substring(0, 50)}...
+                </Text>
                 <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <Button label="⬇️ Download" onPress={() => Alert.alert('Download', 'QR saved to gallery.')} />
-                  <Button label="🔗 Copy Link" onPress={() => Alert.alert('Copied', 'Link copied to clipboard.')} variant="outline" />
+                  <Button label="📋 Copy Link" onPress={handleCopyLink} variant="outline" />
+                  <Button label="🔗 Share" onPress={handleShare} />
                 </View>
               </>
             )}
@@ -125,33 +148,16 @@ export default function QRProfileScreen() {
           </View>
         </View>
 
-        {/* Current Medications */}
+        {/* Instructions */}
         <Card style={{ marginTop: 16 }}>
-          <CardHeader title="💊 Current Medications" />
-          <View style={{ paddingHorizontal: 16, paddingBottom: 16, alignItems: 'center' }}>
-            <Text style={{ fontSize: 12, color: Colors.gray500, textAlign: 'center', paddingVertical: 10 }}>
-              View medications in the Records section
-            </Text>
-          </View>
-        </Card>
-
-        {/* Update Form */}
-        <Card style={{ marginTop: 16 }}>
-          <CardHeader title="✏️ Update Emergency Information" />
+          <CardHeader title="📖 How to Use" />
           <View style={{ padding: 16 }}>
-            {[
-              { label: 'Blood Type', value: 'O+' },
-              { label: 'Allergies', value: 'Penicillin' },
-              { label: 'Emergency Contact', value: '+91 98765 43210' },
-            ].map((f, i) => (
-              <View key={i} style={{ marginBottom: 14 }}>
-                <Text style={styles.label}>{f.label}</Text>
-                <View style={styles.input}>
-                  <Text style={{ color: Colors.gray800, fontSize: 14 }}>{f.value}</Text>
-                </View>
-              </View>
-            ))}
-            <Button label="Save Emergency Profile" onPress={() => Alert.alert('Saved', 'Emergency profile updated.')} style={{ width: '100%', marginTop: 4 }} />
+            <Text style={{ fontSize: 12, color: Colors.gray600, lineHeight: 20 }}>
+              1. Show this QR code to emergency responders{'\n'}
+              2. They can scan it without logging in{'\n'}
+              3. They'll see your health info and reports{'\n'}
+              4. Keep this screen accessible for emergencies
+            </Text>
           </View>
         </Card>
 
@@ -162,11 +168,10 @@ export default function QRProfileScreen() {
 
 const styles = StyleSheet.create({
   warningBanner: { backgroundColor: Colors.warningSoft, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: Colors.warning, flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  qrBox: { width: 200, height: 200, borderRadius: 14, borderWidth: 3, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.white, marginBottom: 14 },
+  qrBox: { width: 200, height: 200, borderRadius: 14, borderWidth: 3, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.white, marginBottom: 14, padding: 10 },
   card: { backgroundColor: Colors.white, borderRadius: 16, overflow: 'hidden', marginBottom: 0, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   dangerHeader: { backgroundColor: Colors.danger, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  medRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  label: { fontSize: 12, fontWeight: '600', color: Colors.gray700, marginBottom: 6 },
-  input: { backgroundColor: Colors.gray50, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14 },
 });
+
+import { StyleSheet } from 'react-native';

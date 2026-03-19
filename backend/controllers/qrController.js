@@ -3,6 +3,7 @@ const User = require("../models/User");
 const QrScanLog = require("../models/QrScanLog");
 const Report = require("../models/Report");
 const MedRecord = require("../models/MedRecord");
+const Medicine = require("../models/Medicine");
 
 const QR_TOKEN_EXPIRY = "7d";
 const QR_EMERGENCY_TOKEN_EXPIRY = process.env.QR_EMERGENCY_TOKEN_EXPIRY || "30d";
@@ -148,22 +149,26 @@ const accessEmergencyProfile = async (req, res, next) => {
 		}
 
 		const patient = await User.findOne({ _id: decoded.patientId, role: "patient" }).select(
-			"name bloodType allergies emergencyContact"
+			"name firstName lastName bloodType allergies emergencyContact phone"
 		);
 
 		if (!patient) {
 			return res.status(404).json({ message: "Patient not found." });
 		}
 
-		const [reports, recentRecords] = await Promise.all([
+		const [reports, records, medicines] = await Promise.all([
 			Report.find({ patientId: patient._id })
 				.select("reportType fileUrl originalName mimeType createdAt")
 				.sort({ createdAt: -1 })
-				.limit(20),
+				.limit(50),
 			MedRecord.find({ patientId: patient._id })
 				.select("date diagnosis notes medicines createdAt")
 				.sort({ date: -1 })
-				.limit(5),
+				.limit(20),
+			Medicine.find({ patientId: patient._id, isActive: true })
+				.select("name dosage frequency timeSlots")
+				.sort({ createdAt: -1 })
+				.limit(10),
 		]);
 
 		await QrScanLog.create({
@@ -179,12 +184,27 @@ const accessEmergencyProfile = async (req, res, next) => {
 			patient: {
 				id: patient._id,
 				name: patient.name,
+				firstName: patient.firstName,
+				lastName: patient.lastName,
 				bloodType: patient.bloodType || null,
 				allergies: patient.allergies || [],
 				emergencyContact: patient.emergencyContact || null,
+				phone: patient.phone || null,
 			},
-			reports,
-			recentRecords,
+			reports: {
+				count: reports.length,
+				items: reports,
+			},
+			records: {
+				count: records.length,
+				items: records,
+			},
+			medicines: {
+				count: medicines.length,
+				items: medicines,
+			},
+			scannedAt: new Date().toISOString(),
+			generatedBy: "MediVault Emergency QR",
 		});
 	} catch (error) {
 		return next(error);
