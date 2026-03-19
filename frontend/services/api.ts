@@ -7,13 +7,13 @@ const USER_KEY = '@MediVault:userData';
 const BASE_URL = (() => {
   if (__DEV__) {
     if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:5000/api/v1';
+      return 'http://10.5.0.108:5000/api/v1';
     }
     return 'http://localhost:5000/api/v1';
   }
   return "https://medivault-cxas.onrender.com/api/v1";
 })();
-const TIMEOUT_MS = 60000;
+const TIMEOUT_MS = 120000;
 
 export interface User {
   id?: string;
@@ -224,9 +224,12 @@ const apiCall = async (
     return { ok: response.ok, status: response.status, data };
   } catch (error: unknown) {
     clearTimeout(timeoutId);
-    const err = error as Error & { name?: string };
+    const err = error as Error & { name?: string; message?: string };
     if (err.name === 'AbortError') {
       throw new Error('Request timed out. Please check your connection.');
+    }
+    if (err.name === 'TypeError' && err.message?.includes('Network')) {
+      throw new Error('Network error. Please check your internet connection.');
     }
     throw error;
   }
