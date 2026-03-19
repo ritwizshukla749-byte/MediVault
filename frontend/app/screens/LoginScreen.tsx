@@ -101,7 +101,7 @@ export default function LoginScreen() {
         <View style={styles.header}>
           <View style={styles.logoBox}><Text style={styles.logoText}>✚</Text></View>
           <Text style={styles.brand}>MediVault</Text>
-          <Text style={styles.brandSub}>HEALTH PLATFORM</Text>
+          <Text style={styles.brandSub}> HEALTH PLATFORM </Text>
         </View>
 
         <Text style={styles.title}>Welcome back 👋</Text>
