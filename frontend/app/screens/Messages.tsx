@@ -4,7 +4,7 @@ import {
   TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNavLayout from '../../components/BottomNavLayout';
+import BottomNavLayout from '@/components/BottomNavLayout';
 import { useTheme } from '../../context/ThemeContext';
 import { useBadges } from '../../context/BadgeContext';
 

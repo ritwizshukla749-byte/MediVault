@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import BottomNavLayout from '../../components/BottomNavLayout';
+import BottomNavLayout from '@/components/BottomNavLayout';
 import { StatCard, Card, CardHeader, Badge, Button, ProgressBar, IconBox } from '../../components/UI';
 import { medicineAPI, Medicine } from '../../services/api';
 

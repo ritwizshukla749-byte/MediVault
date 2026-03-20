@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Animated, RefreshControl } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNavLayout from '../../components/BottomNavLayout';
+import BottomNavLayout from '@/components/BottomNavLayout';
 import { StatCard, Card, CardHeader, Badge, Button, ProgressBar, Avatar, IconBox, ColorIcon } from '../../components/UI';
 import { useTheme } from '../../context/ThemeContext';
 import { doctorAPI } from '../../services/api';

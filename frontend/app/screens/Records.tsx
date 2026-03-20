@@ -6,7 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import BottomNavLayout from '../../components/BottomNavLayout';
+import BottomNavLayout from '@/components/BottomNavLayout';
 import { StatCard, Card, CardHeader, Badge, Button, IconBox } from '../../components/UI';
 import { patientAPI, doctorAPI, MedRecord } from '../../services/api';
 

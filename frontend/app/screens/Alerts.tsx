@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useBadges } from '../../context/BadgeContext';
-import BottomNavLayout from '../../components/BottomNavLayout';
+import BottomNavLayout from '@/components/BottomNavLayout';
 import { StatCard, Card, Badge, Button } from '../../components/UI';
 import { doctorAPI, SymptomLog } from '../../services/api';
 

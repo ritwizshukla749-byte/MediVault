@@ -7,7 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import BottomNavLayout from '../../components/BottomNavLayout';
+import BottomNavLayout from '@/components/BottomNavLayout';
 import { Card, CardHeader, Badge, Button, IconBox } from '../../components/UI';
 import { patientAPI, Report } from '../../services/api';
 
